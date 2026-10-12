@@ -1,0 +1,19 @@
+# Never commit credentials or local configuration
+.env
+.env.*
+!.env.example
+config.json
+state.json
+*.secret
+*.pem
+login.lock
+
+# Local artefacts
+node_modules/
+*.tgz
+.pack-test/
+coverage/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store

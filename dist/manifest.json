@@ -1,0 +1,195 @@
+{
+  "source": "brewboard_skill/files/bb-connector (canonical connector)",
+  "files": [
+    {
+      "path": "skill/SKILL.md",
+      "sha256": "a1268c1278b36e0314bdf1bb08277e9c05f50538ebf2bab3ca32104f751508ce",
+      "mode": "644"
+    },
+    {
+      "path": "skill/reference/contract.md",
+      "sha256": "52f9f69ec91ef0f9286f6544d0086eea12dc9697f2f9e13e6ca17a0c434dec46",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bb.py",
+      "sha256": "65b23f50a83b97ad369b799fe88daeccc20d524daecc328466581822083a2546",
+      "mode": "755"
+    },
+    {
+      "path": "skill/scripts/bbclient/__init__.py",
+      "sha256": "4bb7f6887f8ac58b0033e1b1d51bc0c69e6fc6fd84b3c160798ad0829f6ff85f",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bbclient/api.py",
+      "sha256": "97dcc4cf306ae989a3f7ce0e16f96a28666c777ccdc1db484157399be0f95608",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bbclient/config.py",
+      "sha256": "845ba408fe3d34bb8b336aef8d9f3826dd842f2119260c9e233c84555fa686ea",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bbclient/diagnose.py",
+      "sha256": "6c1ec0f4523193a54e71325d8ffc6230a7f2ff64f7e8f25cb0c95bd4366c5986",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bbclient/errors.py",
+      "sha256": "57c2f53175bdc5b6c5f825ed7315336e133668fd77f58f0d75b53daed7d9aa02",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bbclient/render.py",
+      "sha256": "1ac61c2184ad1da53707c8afb4f996989f256c328ff3e4db05683aaefab0cbcb",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bbclient/service.py",
+      "sha256": "1e01be973e3c3a3b5e3a82ccc81a867e5e933711cf62fd4eb89e8c6fae67d37e",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bbclient/transport.py",
+      "sha256": "b41f3e51bb427f2936f2602d53ef041b87a35a00d3bfb5606d303dbf7ae6879a",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-create_mom.md",
+      "sha256": "7d9aa59ce41db2f2e16016adcef08cff94d9aa94490f5a3e388123f4430fead0",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-cycles.md",
+      "sha256": "b8edbec350ce87295e140cc5ed10fb09b1f830f030756cdf6ad43358355228bd",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-find.md",
+      "sha256": "3a1fb050d04297494baa7840ef2203b4a3bd092152da243dbf2cd5e787390094",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-init.md",
+      "sha256": "6d51f99d8274286c1648522539b4c82b0b24ff92861c15f8f79c97929d3333ed",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-list_projects.md",
+      "sha256": "7af1a1831647520fab286cd379f9a514cec513a9fec952944bca98858439d057",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-list_tasks.md",
+      "sha256": "8b3f880f99f291269ff9764cd60eb6fce41324044ca456b3ff2b511bd750afab",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-list_tickets.md",
+      "sha256": "9d9175871ba0e6287c821f13680dbee05455d34013c90a3ec3bf26f3e8cccc77",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-log_time.md",
+      "sha256": "f705ae21c65cefc794f38f1508cf9d41f2c0bed82596add20447b7341fb10ab0",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-moms.md",
+      "sha256": "5922f25f6b61afde2b35a0816ee122fe9254e8482b218583fa99966b0b26651a",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-show.md",
+      "sha256": "d4eb37b6ca364da29ca3cb7dfe1d9df078b3fa1298eb1fa205d613d286195621",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-status.md",
+      "sha256": "e16b3014090b53dfa192e9e6ef676c020f59cd7661af4d69282b01f11c3010dc",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb-timesheets.md",
+      "sha256": "5ba0da288a48995939e9cbb0285e9ae32f0381e83129644af36f475c6ade0b51",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/claude-code/bb.md",
+      "sha256": "c80f4f6945e7ac56753987972902c09ad0651c74c74239849a9fb9dabfb5813b",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-create_mom.md",
+      "sha256": "7d9aa59ce41db2f2e16016adcef08cff94d9aa94490f5a3e388123f4430fead0",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-cycles.md",
+      "sha256": "b5b36690ad83f8fcf21debc08bafa418c606e1b55f362a3736ab14912ae06426",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-find.md",
+      "sha256": "055149d891286a92dd407576c0371a7eb8ec0fe726a6eac73dca6411e7e3faef",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-init.md",
+      "sha256": "6d51f99d8274286c1648522539b4c82b0b24ff92861c15f8f79c97929d3333ed",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-list_projects.md",
+      "sha256": "fa8756b5ba2fc37164aeb3951d59ad8df7fda015b1866b2d14924b376ff5441a",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-list_tasks.md",
+      "sha256": "bb25a2a67e6d2a1acc0d9603255ee97a4a7fd07789583ffb80d618d39c9267f7",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-list_tickets.md",
+      "sha256": "ab078a4685aa5d62c719b5964441a4dfe2e3e4526221ede6790f17d60314cfe4",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-log_time.md",
+      "sha256": "9703a8a8f2ec49a65d4cd3b8999ab1eae2676912dcf359aee688191a40951030",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-moms.md",
+      "sha256": "3b272a3db62dec9ff102ff63deeb49089dfcfb9743ee1be7cd3db673b6af461e",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-show.md",
+      "sha256": "37574b0eab20f8ccf9440f601c0e81dc25c9bfd2b21e4751eb9993a62c7dcb25",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-status.md",
+      "sha256": "e16b3014090b53dfa192e9e6ef676c020f59cd7661af4d69282b01f11c3010dc",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb-timesheets.md",
+      "sha256": "92a6d1df7b2c8ec1f5a085a0632b63312e11c6c43c82f58949028f676d2889b2",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb.md",
+      "sha256": "399b53a20462549f2d8ee4b5538bf8bdc41e046638bf5a7ad33d7af9a0c8f463",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/agent-skill/bb.md",
+      "sha256": "a0c746bd2211853683567a940496e326e757771c29038cad248df8428587055f",
+      "mode": "644"
+    }
+  ]
+}

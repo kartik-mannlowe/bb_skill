@@ -1,0 +1,48 @@
+{
+  "name": "brewboard-skill",
+  "version": "0.1.0",
+  "description": "Installs the Brewboard /bb skill for Claude Code, Codex CLI, OpenCode and Antigravity CLI, and signs you in to your Brewboard server.",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kartik-mannlowe/bb_skill.git"
+  },
+  "homepage": "https://github.com/kartik-mannlowe/bb_skill#readme",
+  "bin": {
+    "brewboard-skill": "bin/brewboard-skill.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "dist/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "scripts": {
+    "sync": "node scripts/sync-from-connector.js",
+    "check-sync": "node scripts/sync-from-connector.js --check",
+    "test": "node --test test/*.test.js",
+    "pack:check": "node scripts/check-pack.js",
+    "install-skill": "node bin/brewboard-skill.js",
+    "login": "node bin/brewboard-skill.js --login",
+    "auth-check": "node bin/brewboard-skill.js --check"
+  },
+  "dependencies": {},
+  "keywords": [
+    "brewboard",
+    "claude-code",
+    "codex",
+    "opencode",
+    "antigravity",
+    "agent-skill",
+    "erpnext"
+  ]
+}
