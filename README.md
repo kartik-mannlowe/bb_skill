@@ -114,7 +114,7 @@ npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --login     
 npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --login --here  # sign in inside this terminal
 npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --agents claude,opencode
 npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --no-login    # install/update only
-npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --uninstall
+npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill uninstall [--dry-run]
 npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --help | --version
 ```
 
@@ -142,14 +142,61 @@ Brewboard subcommands (what works depends on your Brewboard role): `init`, `list
 ## Uninstalling
 
 ```bash
-python3 ~/.bb/skill/scripts/bb.py logout     # optional: revoke this CLI's credential on the server first
-npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --uninstall
+npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill uninstall --dry-run   # preview, changes nothing
+npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill uninstall             # shows the plan, asks, applies
 ```
 
-`--uninstall` removes `~/.bb/skill/` and exactly the agent files recorded in `~/.bb/installed.json`
-that are unchanged since Brewboard wrote them. A file you edited is kept and listed. Your other
-commands and skills, the agents' own folders, `~/.bb/config.json`, `~/.bb/state.json` and
-`~/.bb/backups/` are kept. Delete those yourself when you no longer need them.
+`--uninstall` (the older flag form) does the same thing. Uninstall never installs anything, never
+signs in, and does not need any of the agents to still be installed.
+
+| Option | Effect |
+|---|---|
+| `--dry-run` | Show what would be removed and restored; write nothing. |
+| `--yes`, `-y` | Apply without the confirmation prompt (required when not running in a terminal). |
+| `--force` | Also remove files **you edited**, but only if the record shows the installer created them. Asks for confirmation. |
+| `--remove-backups` | Also delete the update backups in `~/.bb/backups/install-*` that this installer made. |
+
+**What it removes.** Exactly the files listed in `~/.bb/installed.json` that are still unchanged:
+
+- the skill, `~/.bb/skill/` (plus the Python cache files it generates when it runs);
+- Claude Code: `~/.claude/commands/bb.md` and `bb-*.md`;
+- Codex and OpenCode: `~/.agents/skills/bb/SKILL.md`;
+- OpenCode: `~/.config/opencode/commands/bb.md` and `bb-*.md`;
+- Antigravity: `~/.gemini/config/skills/bb/SKILL.md`;
+- `~/.bb/installed.json` itself, once nothing tracked is left;
+- folders the installer created (for example `~/.agents/skills/bb`, `~/.bb`), only when they are empty.
+
+Shared folders such as `~/.claude/commands` or `~/.agents/skills` are never removed if they existed
+before, and neither are files the installer did not write, even if their names start with `bb`.
+
+**What it puts back.** A file that was already at one of those paths before Brewboard (kept in
+`~/.bb/backups/originals/`), and old Brewboard copies the installer moved aside (for example
+`~/.config/opencode/skills/bb`). If something else now occupies the path, the backup is kept and
+reported instead of overwriting anything.
+
+**Files you changed.** A tracked file you edited is kept and listed (exit code 2). `--force` removes
+it only when the installer created it; a file that replaced an earlier one of yours is never forced.
+
+**Your saved sign-in (`~/.bb/config.json`).**
+- Created by this installer's sign-in and unchanged: **removed**. The installer tells you the saved
+  credentials are being deleted. They are deleted only locally: run
+  `python3 ~/.bb/skill/scripts/bb.py logout` *before* uninstalling to also revoke a per-client
+  credential on the server.
+- The installer replaced an earlier `config.json` of yours: your earlier file is **restored**.
+- Created some other way (for example `bb.py init`), or changed after the installer wrote it:
+  **kept**.
+
+**What may remain, and why.**
+- `~/.bb/state.json`: written by the skill while you use it (selected project and task; no secrets).
+- `~/.bb/config.json`: if kept as described above.
+- `~/.bb/backups/`: update backups (unless `--remove-backups`) and any backup that could not be put
+  back.
+- Anything listed as "review by hand": files in Brewboard locations with no ownership record.
+
+Remove those by hand once you no longer need them: `rm -rf ~/.bb`. If `installed.json` is missing (for
+example after a manual install), uninstall changes nothing and only lists the Brewboard-looking files
+it finds. Running uninstall again is always safe; anything it could not finish stays recorded for
+the next run.
 
 ## Development
 

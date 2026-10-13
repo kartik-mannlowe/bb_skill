@@ -93,3 +93,18 @@ test("sign-in status rows", async () => {
     }
   } finally { h.cleanup(); }
 });
+
+test("agent version probes never write to HOME (throwaway XDG folders, removed afterwards)", () => {
+  const { cliVersion } = require("../lib/agents");
+  let seen;
+  const v = cliVersion("opencode", { HOME: "/home/x" }, (bin, args, opts) => {
+    seen = opts.env;
+    for (const k of ["XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME"]) {
+      assert.ok(opts.env[k].startsWith(require("os").tmpdir()), k);
+    }
+    return { status: 0, stdout: "1.18.35\n" };
+  });
+  assert.strictEqual(v, "1.18.35");
+  assert.strictEqual(seen.HOME, "/home/x");
+  assert.ok(!fs.existsSync(path.dirname(seen.XDG_CACHE_HOME)), "scratch folder removed");
+});

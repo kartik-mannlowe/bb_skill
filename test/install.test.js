@@ -4,7 +4,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 const { tmpHome } = require("./helpers");
-const { install, uninstall, readManifest, readOwned } = require("../lib/install");
+const { install, readManifest, readOwned } = require("../lib/install");
 const { detectAgents, agentPaths } = require("../lib/agents");
 
 // All four agents "present" (config dirs exist), without needing their CLIs.
@@ -96,11 +96,19 @@ test("replaced files are backed up; Brewboard copies at old paths are moved, for
     const r = install(h.paths, { agents });
     assert.ok(!fs.existsSync(legacyOc) && !fs.existsSync(legacyAg));
     assert.ok(fs.existsSync(foreign));
-    assert.ok(r.backupDir);
-    const bk = (rel) => path.join(r.backupDir, rel);
-    assert.strictEqual(fs.readFileSync(bk(".claude/commands/bb.md"), "utf8"), "hand edited");
-    assert.ok(fs.existsSync(bk(".config/opencode/skills/bb/SKILL.md")));
-    assert.ok(fs.existsSync(bk(".gemini/antigravity-cli/skills/bb/SKILL.md")));
+    const tracking = require("../lib/tracking");
+    const t = tracking.readTracking(h.paths);
+    const orig = tracking.originalPathFor(h.paths, path.join(ap.claudeDir, "commands", "bb.md"));
+    assert.strictEqual(fs.readFileSync(orig, "utf8"), "hand edited", "the earlier file is kept to restore");
+    assert.strictEqual(t.files[path.join(ap.claudeDir, "commands", "bb.md")].created, false);
+    assert.strictEqual(t.files[path.join(ap.claudeDir, "commands", "bb.md")].original, orig);
+    assert.deepStrictEqual(t.moved.map((m) => m.path).sort(), [legacyAg, legacyOc].sort());
+    t.moved.forEach((m) => assert.ok(fs.existsSync(m.backup)));
+    // An update that replaces one of Brewboard's own files backs it up in an install-<ts> run folder.
+    fs.writeFileSync(path.join(ap.claudeDir, "commands", "bb-find.md"), "edited Brewboard command");
+    const r2 = install(h.paths, { agents });
+    assert.ok(r2.backupDir && fs.existsSync(path.join(r2.backupDir, ".claude/commands/bb-find.md")));
+    assert.ok(tracking.readTracking(h.paths).backup_runs.includes(r2.backupDir));
     assert.ok(r.agents.opencode.removed.includes(legacyOc));
   } finally { h.cleanup(); }
 });
@@ -119,28 +127,6 @@ test("a failing agent does not stop the others (partial installation)", { skip: 
     assert.strictEqual(r.agents.codex.status, "installed");
     assert.ok(r.validation.ok);
     fs.chmodSync(path.join(ap.opencodeDir, "commands"), 0o755);
-  } finally { h.cleanup(); }
-});
-
-test("uninstall removes only Brewboard-owned, unmodified files", () => {
-  const h = tmpHome();
-  try {
-    const { ap, agents } = withAgents(h);
-    install(h.paths, { agents });
-    fs.writeFileSync(h.paths.configFile, "{}", { mode: 0o600 });
-    const userFile = path.join(ap.opencodeDir, "commands", "deploy.md");
-    fs.writeFileSync(userFile, "user command");
-    const edited = path.join(ap.claudeDir, "commands", "bb-find.md");
-    fs.writeFileSync(edited, "my own changes");
-    const r = uninstall(h.paths);
-    assert.ok(!fs.existsSync(h.paths.skillDir));
-    assert.ok(!fs.existsSync(path.join(ap.claudeDir, "commands", "bb.md")));
-    assert.ok(!fs.existsSync(path.join(ap.agentSkills, "bb")), "empty skill folder removed too");
-    assert.ok(!fs.existsSync(path.join(ap.geminiConfig, "skills", "bb")));
-    assert.ok(fs.existsSync(userFile) && fs.existsSync(edited));
-    assert.deepStrictEqual(r.keptModified, [edited]);
-    assert.deepStrictEqual(r.kept, [h.paths.configFile]);
-    assert.ok(fs.existsSync(ap.claudeDir) && fs.existsSync(ap.opencodeDir), "agent folders themselves stay");
   } finally { h.cleanup(); }
 });
 
