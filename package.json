@@ -9,15 +9,13 @@
     "type": "git",
     "url": "git+https://github.com/kartik-mannlowe/bb_skill.git"
   },
-  "homepage": "https://github.com/kartik-mannlowe/bb_skill#readme",
   "bin": {
     "brewboard-skill": "bin/brewboard-skill.js"
   },
   "files": [
     "bin/",
     "lib/",
-    "dist/",
-    "README.md"
+    "dist/"
   ],
   "engines": {
     "node": ">=18.17"
@@ -27,13 +25,9 @@
     "darwin"
   ],
   "scripts": {
-    "sync": "node scripts/sync-from-connector.js",
-    "check-sync": "node scripts/sync-from-connector.js --check",
     "test": "node --test test/*.test.js",
-    "pack:check": "node scripts/check-pack.js",
-    "install-skill": "node bin/brewboard-skill.js",
-    "login": "node bin/brewboard-skill.js --login",
-    "auth-check": "node bin/brewboard-skill.js --check"
+    "check-dist": "node scripts/check-dist.js",
+    "pack:check": "node scripts/check-pack.js"
   },
   "dependencies": {},
   "keywords": [

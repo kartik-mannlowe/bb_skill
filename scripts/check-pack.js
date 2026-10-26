@@ -9,9 +9,9 @@ const path = require("path");
 const r = spawnSync("npm", ["pack", "--dry-run", "--json"], { cwd: path.join(__dirname, ".."), encoding: "utf8" });
 if (r.status !== 0) { console.error(r.stderr); process.exit(1); }
 const files = JSON.parse(r.stdout)[0].files.map((f) => f.path).sort();
-const bad = files.filter((f) => !/^(bin\/|lib\/|dist\/|README\.md$|package\.json$)/.test(f) ||
+const bad = files.filter((f) => !/^(bin\/|lib\/|dist\/|package\.json$)/.test(f) ||
   /\.env|config\.json|state\.json|db\.json|backup|__pycache__|\.venv|mock|\.pem$|\.key$/i.test(f));
-// dist/ ships exactly the files dist/manifest.json lists (plus the manifest itself).
+// dist/ ships exactly the files dist/manifest.json lists (plus the manifest itself); `npm run check-dist` verifies their content.
 const listed = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "dist", "manifest.json"), "utf8")).files
   .map((f) => `dist/${f.path}`);
 bad.push(...files.filter((f) => f.startsWith("dist/") && f !== "dist/manifest.json" && !listed.includes(f))

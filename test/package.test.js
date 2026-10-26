@@ -4,14 +4,13 @@ const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const { plan, SRC } = require("../scripts/sync-from-connector");
 
 const ROOT = path.join(__dirname, "..");
 const pkg = require("../package.json");
 
 test("package metadata: bin, engines, allowlist, no dependencies, not publishable by accident", () => {
   assert.deepStrictEqual(pkg.bin, { "brewboard-skill": "bin/brewboard-skill.js" });
-  assert.deepStrictEqual(pkg.files, ["bin/", "lib/", "dist/", "README.md"]);
+  assert.deepStrictEqual(pkg.files, ["bin/", "lib/", "dist/"]);
   assert.deepStrictEqual(pkg.dependencies, {});
   assert.strictEqual(pkg.private, true);
   assert.ok(pkg.engines.node);
@@ -22,18 +21,11 @@ test("npm pack contains only the allowlist and nothing secret", () => {
   assert.strictEqual(r.status, 0, r.stderr);
   const files = JSON.parse(r.stdout)[0].files.map((f) => f.path);
   for (const f of files) {
-    assert.match(f, /^(bin\/|lib\/|dist\/|README\.md$|package\.json$)/, f);
+    assert.match(f, /^(bin\/|lib\/|dist\/|package\.json$)/, f);
     assert.doesNotMatch(f, /\.env|config\.json|state\.json|db\.json|backup|__pycache__|\.venv|mock|test/i, f);
   }
   assert.ok(files.includes("dist/skill/scripts/bb.py"));
   assert.ok(files.includes("dist/adapters/claude-code/bb.md"));
-});
-
-test("packaged skill matches the canonical connector (drift check)", { skip: !fs.existsSync(SRC) && "connector not on this machine" }, () => {
-  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "dist/manifest.json"), "utf8"));
-  const fresh = plan().map(({ path: p, sha256 }) => ({ path: p, sha256 }));
-  assert.deepStrictEqual(manifest.files.map(({ path: p, sha256 }) => ({ path: p, sha256 })), fresh,
-                         "dist/ is stale: run npm run sync");
 });
 
 test("running the packaged bb.py leaves no bytecode in the package", async () => {
