@@ -202,7 +202,35 @@ def cmd_auth_check(a) -> None:
     emit(out)
 
 
+# Free text (titles, subjects, descriptions) can come from Brewboard records written by people outside the
+# team. SKILL.md passes it as JSON on stdin (`--file -` with a quoted heredoc) so no shell ever interprets
+# it; the options themselves still work for commands typed by hand.
+def merge_file_fields(a, fields: dict) -> None:
+    """Set each attribute named in `fields` ("str" or "list") from the JSON object in --file."""
+    if not getattr(a, "file", None):
+        return
+    data = service.read_json_input(a.file)
+    if not isinstance(data, dict):
+        raise BBError("bad_input", "--file must hold a JSON object")
+    data = {k.replace("-", "_"): v for k, v in data.items()}
+    unknown = sorted(set(data) - set(fields))
+    if unknown:
+        raise BBError("bad_input", f"--file: unknown field(s) {', '.join(unknown)}; "
+                                   f"allowed: {', '.join(sorted(fields))}")
+    for key, value in data.items():
+        if fields[key] == "str":
+            ok, kind = isinstance(value, str), "a string"
+        else:
+            ok, kind = isinstance(value, list) and all(isinstance(v, str) for v in value), "a list of strings"
+        if not ok:
+            raise BBError("bad_input", f"--file: {key} must be {kind}")
+        if getattr(a, key, None) not in (None, []):
+            raise BBError("bad_input", f"{key} was given both as an option and in --file")
+        setattr(a, key, value)
+
+
 def cmd_ctx(a) -> None:
+    merge_file_fields(a, {"title": "str", "titles": "list", "record": "str"})
     st = config.load_state()
     ids = a.ids or []
     if a.action in ("set-project", "set-task") and len(ids) != 1:
@@ -310,6 +338,9 @@ def cmd_download(a) -> None:
 def cmd_create_task(a) -> None:
     if a.expected:
         raise unsupported("expected time on tasks", "create_task has no expected_time parameter.")
+    merge_file_fields(a, {"subject": "str", "desc": "str"})
+    if not a.subject:
+        raise BBError("bad_input", "a task subject is required (--subject, or \"subject\" in --file)")
     emit(service.create_task(make_api(), config.load_state(), a.subject, a.project, a.desc, a.priority, a.status,
                              a.start, a.due, a.issue, a.parent, not a.no_assign))
 
@@ -324,6 +355,9 @@ def cmd_log_time(a) -> None:
         raise unsupported("logging time for another employee", "Brewboard logs time as the signed-in user.")
     if a.note:
         raise unsupported("timesheet notes", "create_timesheet_log has no note parameter; use --desc.")
+    merge_file_fields(a, {"desc": "str", "new_task": "str", "task_desc": "str"})
+    if not a.desc:
+        raise BBError("bad_input", "a description of the work is required (--desc, or \"desc\" in --file)")
     emit(service.log_time(make_api(), config.load_state(), a.hours, a.activity, a.desc, a.task, a.new_task,
                           a.project, a.date, a.from_time, a.billable, a.meeting, a.workstream, a.task_desc,
                           a.allow_duplicate))
@@ -414,6 +448,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--title", help="display title for set-project / set-task")
     s.add_argument("--titles", nargs="+", help="display titles for set-tickets, same order as the IDs")
     s.add_argument("--record", help="set-project: the Project document name (e.g. PROJ-0001), if known")
+    s.add_argument("--file", help="JSON object with title / titles / record instead of the options ('-' for stdin)")
 
     s = add("projects", cmd_projects, "List projects", fmt=True)
     s.add_argument("--status", default="Open", help="Open (default), Completed, Cancelled or all")
@@ -479,9 +514,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--project", help="project identifier")
 
     s = add("create-task", cmd_create_task, "Create a task in the selected (or given) project")
-    s.add_argument("--subject", required=True)
+    s.add_argument("--subject", help="required, here or in --file")
     s.add_argument("--project", help="project identifier")
     s.add_argument("--desc")
+    s.add_argument("--file", help="JSON object with subject / desc instead of the options ('-' for stdin)")
     s.add_argument("--priority", default="Medium", choices=["Low", "Medium", "High", "Urgent"])
     s.add_argument("--status", default="Open")
     s.add_argument("--start", help="expected start date")
@@ -501,10 +537,12 @@ def build_parser() -> argparse.ArgumentParser:
     s = add("log-time", cmd_log_time, "Create a time log on a task (optionally creating the task first)")
     s.add_argument("--hours", required=True, help="2, 2.5, 2h, 90m, 1h30")
     s.add_argument("--activity", default="Development")
-    s.add_argument("--desc", required=True, help="what was done")
+    s.add_argument("--desc", help="what was done (required, here or in --file)")
     s.add_argument("--task", help="existing task ID")
     s.add_argument("--new-task", metavar="SUBJECT", help="create this task first, then log against it")
     s.add_argument("--task-desc", help="description for --new-task (defaults to --desc)")
+    s.add_argument("--file", help="JSON object with desc / new_task / task_desc instead of the options "
+                                  "('-' for stdin)")
     s.add_argument("--project", help="project identifier")
     s.add_argument("--date", help="YYYY-MM-DD, today (default), yesterday")
     s.add_argument("--from", dest="from_time", metavar="HH:MM",

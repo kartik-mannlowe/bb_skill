@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -55,12 +56,34 @@ def load_json(path: Path, default):
 
 
 def save_json(path: Path, data, private: bool = False) -> None:
+    """Atomic write through a uniquely named temp file in the same directory, so concurrent runs never
+    share a temp file and a crash leaves either the old or the new file. The temp file is created 0600
+    (mkstemp), so a private file is never readable by others, not even before the rename; a missing
+    parent directory of a private file is created 0700. On failure the temp file is removed."""
+    if private and not path.parent.exists():
+        try:
+            path.parent.mkdir(parents=True, mode=0o700)
+            os.chmod(path.parent, 0o700)
+        except FileExistsError:  # created meanwhile by a concurrent run
+            pass
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    if private:
-        os.chmod(tmp, 0o600)
-    tmp.replace(path)
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(data, indent=2))
+            fh.flush()
+            os.fsync(fh.fileno())
+        if not private:  # same mode a plain write would give (state.json)
+            umask = os.umask(0)
+            os.umask(umask)
+            os.chmod(tmp, 0o666 & ~umask)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def load_config(required: bool = True) -> dict:

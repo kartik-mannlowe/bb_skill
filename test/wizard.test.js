@@ -184,3 +184,61 @@ test("a second wizard does not start while one is running", async () => {
     assert.strictEqual((await run).state, "cancelled");
   } finally { await done(); }
 });
+
+// D5: only proof of an older backend leads to the shared-secret sign-in. Anything unclear stops
+// before a password is asked for, so a server hiccup can never replace the account's API secret.
+const AMBIGUOUS = {
+  "a server error (500)": { status: 500, exc: "Exception", message: "Internal Server Error" },
+  "a gateway error page (502, HTML)": { status: 502, html: "<html><body>502 Bad Gateway</body></html>" },
+  "maintenance (503)": { status: 503, exc: "Exception", message: "Service Unavailable" },
+  "rate limiting (429)": { status: 429, exc: "TooManyRequestsError", message: "Too many requests" },
+  "not found (404)": { status: 404, exc: "DoesNotExistError", message: "Not found" },
+  "a different validation error (417)": { status: 417, exc: "ValidationError", message: "Per-client API credentials are not set up on this site yet" },
+  "a 417 for another method": { status: 417, exc: "ValidationError", message: "Failed to get method for command brewboard_backend.api.auth.something_else" },
+  "an unexpected success (200)": { status: 200, exc: "", message: "" },
+  "a dropped connection": "drop",
+};
+
+for (const [what, probe] of Object.entries(AMBIGUOUS)) {
+  test(`capability probe answered with ${what}: sign-in stops, no password, no shared-secret fallback`, async () => {
+    const h = tmpHome();
+    install(h.paths);
+    const srv = await mockServer({ mode: "legacy", probe });
+    const tty = fakeTty();
+    try {
+      const run = runWizard({ paths: h.paths, env: h.env, io: tty });
+      await drive(tty, [{ waitFor: "server URL:", send: [srv.url, KEY.enter] }]);
+      const r = await run;
+      assert.strictEqual(r.state, "failed", tty.text());
+      const out = tty.text();
+      assert.match(out, probe === "drop" ? /Cannot reach/ : /Could not tell whether .* issues per-client credentials/);
+      assert.doesNotMatch(out, /shares one API secret per account|password:/, "never reaches the shared-secret choice or the password");
+      assert.strictEqual(srv.calls("auth.login_and_get_keys").length, 0);
+      assert.ok(!fs.existsSync(h.paths.configFile));
+    } finally { await srv.close(); h.cleanup(); }
+  });
+}
+
+test("capability probe: Frappe's 'Failed to get method' for list_credentials is proof of an older backend", async () => {
+  const { h, srv, tty, done } = await setup("legacy");
+  try {
+    const run = runWizard({ paths: h.paths, env: h.env, io: tty });
+    await drive(tty, [{ waitFor: "server URL:", send: [srv.url, KEY.enter] },
+                      { waitFor: "Cancel", send: [KEY.down, KEY.enter] }]);
+    assert.strictEqual((await run).state, "cancelled");
+    assert.match(tty.text(), /shares one API secret per account/);
+  } finally { await done(); }
+});
+
+test("capability probe: 401 means per-client credentials, like 403", async () => {
+  const h = tmpHome();
+  install(h.paths);
+  const srv = await mockServer({ mode: "per-client", probe: { status: 401, exc: "AuthenticationError", message: "Not permitted" } });
+  const tty = fakeTty();
+  try {
+    const run = runWizard({ paths: h.paths, env: h.env, io: tty });
+    await drive(tty, signIn(srv.url));
+    assert.strictEqual((await run).state, "success", tty.text());
+    assert.strictEqual(srv.calls("auth.login_and_get_keys")[0].body.client, "cli");
+  } finally { await srv.close(); h.cleanup(); }
+});

@@ -76,7 +76,7 @@ Context (selected project / task / tickets) is client-side state kept by `bb.py 
 The `//` comments in the examples are annotations only; real JSON must not contain them.
 
 ### 3.1 log_time
-`bb.py log-time --hours 2.5 --activity Development --desc "..." (--task <ID> | --new-task "<subject>") [--project <IDENT>] [--date D] [--from HH:MM] [--billable] [--meeting MOM-ID]`
+`bb.py log-time --hours 2.5 --activity Development [--task <ID>] [--project <IDENT>] [--date D] [--from HH:MM] [--billable] [--meeting MOM-ID] --file -` with `{"desc": "...", "new_task": "<subject>"}` on stdin (`new_task` instead of `--task`; `--desc` / `--new-task` options also work when typed by hand)
 
 Behaviour:
 - A task is required (`create_timesheet_log` rejects a log without one). `--new-task` first

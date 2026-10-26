@@ -22,7 +22,8 @@ function tmpHome({ realPath = false } = {}) {
 }
 
 // mode: "per-client" (new backend) | "legacy" (shared secret) | "not-brewboard"
-function mockServer({ mode = "per-client", password = PASSWORD, user = "dev@bb.test" } = {}) {
+// probe: overrides the unauthenticated auth.list_credentials answer: {status, exc?, message?, html?} or "drop"
+function mockServer({ mode = "per-client", password = PASSWORD, user = "dev@bb.test", probe = null } = {}) {
   const requests = [];
   const valid = new Map(); // api_key -> {secret, source}
   let n = 0;
@@ -48,6 +49,9 @@ function mockServer({ mode = "per-client", password = PASSWORD, user = "dev@bb.t
       if (mode === "not-brewboard") return frappeError(res, 417, "ValidationError", "Failed to get method for command");
       if (method === "health.ping") return ok(res, { status: "ok", app: "brewboard_backend" });
       if (method === "auth.list_credentials") {
+        if (probe === "drop") return req.socket.destroy();
+        if (probe && probe.html) { res.writeHead(probe.status, { "Content-Type": "text/html" }); return res.end(probe.html); }
+        if (probe) return frappeError(res, probe.status, probe.exc || "Exception", probe.message || "");
         if (mode === "legacy") return frappeError(res, 417, "ValidationError", `Failed to get method for command brewboard_backend.api.${method}`);
         if (!authed(req)) return frappeError(res, 403, "PermissionError", "You are not permitted to access this resource.");
         return ok(res, []);

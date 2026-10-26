@@ -15,6 +15,7 @@ CODES = {
     "unreachable": "no connection (URL, VPN, server down)",
     "write_outcome_unknown": "a write was sent but no answer came back; check before retrying",
     "http_error": "other HTTP failure or a response that is not valid JSON",
+    "redirect_refused": "3xx: the server redirected; bb.py never follows redirects (credentials could go elsewhere)",
     "bad_response": "the API answered with a shape bb.py does not recognise",
     "not_brewboard": "the URL answers but does not serve the brewboard_backend API",
     "api_unsupported": "the Brewboard API has no endpoint for this operation",

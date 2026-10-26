@@ -65,6 +65,15 @@ def _debug(msg: str) -> None:
         sys.stderr.write(f"[bb] {msg}\n")
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Redirects are never followed. urllib would resend the Authorization header (and the
+    Frappe-Authorization-Source) to whatever host, scheme or path a 3xx names, including another
+    site or plain http, and a sign-in request carries the password. The 3xx surfaces as an HTTPError."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 class Transport:
     """Sends requests to one site. `opener` is injectable for tests (anything with .open(req, timeout))."""
 
@@ -75,7 +84,7 @@ class Transport:
         # Per-client credential: tells Frappe which DocType holds the key pair (default: User).
         self._auth_source = auth_source if self._auth else None
         self.timeout = timeout
-        self._opener = opener or urllib.request.build_opener()
+        self._opener = opener or urllib.request.build_opener(_NoRedirect)
 
     def __repr__(self) -> str:  # never show the credentials
         return f"Transport({self.base_url!r}, auth={'set' if self._auth else 'none'})"
@@ -122,6 +131,8 @@ class Transport:
                 _debug(f"{http_method} {path} -> {status} in {time.monotonic() - started:.2f}s")
             except urllib.error.HTTPError as e:
                 _debug(f"{http_method} {path} -> {e.code} in {time.monotonic() - started:.2f}s")
+                if 300 <= e.code < 400:
+                    raise self._redirect_error(e, http_method, path) from None
                 if e.code in RETRYABLE_STATUS and attempt < attempts:
                     time.sleep(0.5)
                     continue
@@ -179,6 +190,19 @@ class Transport:
         if code == "server_error" and http_method != "GET":
             extra["note"] = "The write may or may not have been saved; check before retrying."
         return BBError(code, str(msg), status=e.code, **extra)
+
+    def _redirect_error(self, e: urllib.error.HTTPError, http_method: str, path: str) -> BBError:
+        """Names only the target's scheme and host: a redirect URL's path or query can carry tokens."""
+        location = e.headers.get("Location", "") if e.headers else ""
+        target = urllib.parse.urlsplit(urllib.parse.urljoin(self.base_url + path, location)) if location else None
+        shown = f"{target.scheme}://{target.netloc}" if target and target.netloc else "another address"
+        extra = {"endpoint": path.rsplit("/", 1)[-1] or None}
+        if http_method != "GET":
+            extra["note"] = "Nothing was sent to the new address; check whether the original request was saved."
+        return BBError("redirect_refused",
+                       f"{self.base_url} answered with a redirect ({e.code}) to {shown}. bb.py never follows "
+                       "redirects, because they could carry your credentials elsewhere. If the Brewboard site "
+                       "moved, sign in again with its new address (bb.py init).", status=e.code, **extra)
 
     def _network_error(self, e: Exception, http_method: str, sent: bool) -> BBError:
         reason = getattr(e, "reason", e)

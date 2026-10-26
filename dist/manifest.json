@@ -3,17 +3,17 @@
   "files": [
     {
       "path": "skill/SKILL.md",
-      "sha256": "a1268c1278b36e0314bdf1bb08277e9c05f50538ebf2bab3ca32104f751508ce",
+      "sha256": "ddd6378555aec69b6ccd748041804ecb4dfa3e1852a04e6dd0980803f3886dee",
       "mode": "644"
     },
     {
       "path": "skill/reference/contract.md",
-      "sha256": "52f9f69ec91ef0f9286f6544d0086eea12dc9697f2f9e13e6ca17a0c434dec46",
+      "sha256": "459a59422b035e051437a7597d7326ad615e4f849bf9f1c4cea8da7a967b250f",
       "mode": "644"
     },
     {
       "path": "skill/scripts/bb.py",
-      "sha256": "65b23f50a83b97ad369b799fe88daeccc20d524daecc328466581822083a2546",
+      "sha256": "4132d8a8beb70d924a320ff926ab5aab3e4f66d9fc84bab241b7df7e25f73d03",
       "mode": "755"
     },
     {
@@ -28,7 +28,7 @@
     },
     {
       "path": "skill/scripts/bbclient/config.py",
-      "sha256": "845ba408fe3d34bb8b336aef8d9f3826dd842f2119260c9e233c84555fa686ea",
+      "sha256": "bf976138224de1c0a0fbd0bcafdb02f9a8111f4293efcc6e5d205716252914b2",
       "mode": "644"
     },
     {
@@ -38,7 +38,7 @@
     },
     {
       "path": "skill/scripts/bbclient/errors.py",
-      "sha256": "57c2f53175bdc5b6c5f825ed7315336e133668fd77f58f0d75b53daed7d9aa02",
+      "sha256": "6fdf6ce255c584b947fd9f02a8619f2c259231fd72418313c6fb3a4f2740649a",
       "mode": "644"
     },
     {
@@ -53,7 +53,7 @@
     },
     {
       "path": "skill/scripts/bbclient/transport.py",
-      "sha256": "b41f3e51bb427f2936f2602d53ef041b87a35a00d3bfb5606d303dbf7ae6879a",
+      "sha256": "52fe8eafc9e60d832c6314078f7708046a5889d194a70e1eb71d481be4518b60",
       "mode": "644"
     },
     {
@@ -68,7 +68,7 @@
     },
     {
       "path": "adapters/claude-code/bb-find.md",
-      "sha256": "3a1fb050d04297494baa7840ef2203b4a3bd092152da243dbf2cd5e787390094",
+      "sha256": "230d639156a6cc59d910b6cbe70378abd3c9eb49896a34d06dd95f100c75e273",
       "mode": "644"
     },
     {
@@ -78,17 +78,17 @@
     },
     {
       "path": "adapters/claude-code/bb-list_projects.md",
-      "sha256": "7af1a1831647520fab286cd379f9a514cec513a9fec952944bca98858439d057",
+      "sha256": "f39add7bbd634bc2b1cba19fe03e847f3d5ba0d3f5a10d192d8dda894b673e50",
       "mode": "644"
     },
     {
       "path": "adapters/claude-code/bb-list_tasks.md",
-      "sha256": "8b3f880f99f291269ff9764cd60eb6fce41324044ca456b3ff2b511bd750afab",
+      "sha256": "8b7be040baa91661f09b663187fba2f65dad2a21c563fa85232531977a2bfa0d",
       "mode": "644"
     },
     {
       "path": "adapters/claude-code/bb-list_tickets.md",
-      "sha256": "9d9175871ba0e6287c821f13680dbee05455d34013c90a3ec3bf26f3e8cccc77",
+      "sha256": "3963802d963a04594a0cf7a35e4d6206db425e42606ad950582de20d72f487b0",
       "mode": "644"
     },
     {
@@ -98,7 +98,7 @@
     },
     {
       "path": "adapters/claude-code/bb-moms.md",
-      "sha256": "5922f25f6b61afde2b35a0816ee122fe9254e8482b218583fa99966b0b26651a",
+      "sha256": "ec6f1676ddbf542a55c05dd7d6cf58ecac3c97a93159d1bca45040ec06250366",
       "mode": "644"
     },
     {
@@ -133,7 +133,7 @@
     },
     {
       "path": "adapters/opencode/bb-find.md",
-      "sha256": "055149d891286a92dd407576c0371a7eb8ec0fe726a6eac73dca6411e7e3faef",
+      "sha256": "9f4fe71440c7e7970c1a5f1ea268e60c978da4bc05e8580fd26e3c08f1c640c7",
       "mode": "644"
     },
     {
@@ -143,17 +143,17 @@
     },
     {
       "path": "adapters/opencode/bb-list_projects.md",
-      "sha256": "fa8756b5ba2fc37164aeb3951d59ad8df7fda015b1866b2d14924b376ff5441a",
+      "sha256": "061c0b25e41d3b15ef4dfa81b74ba694493b202b2638bca87b2a3effd5e137d3",
       "mode": "644"
     },
     {
       "path": "adapters/opencode/bb-list_tasks.md",
-      "sha256": "bb25a2a67e6d2a1acc0d9603255ee97a4a7fd07789583ffb80d618d39c9267f7",
+      "sha256": "6bbbcf52793f459150b79f8039cf8e6e12b3301e3ad02dc7589964cc2e536626",
       "mode": "644"
     },
     {
       "path": "adapters/opencode/bb-list_tickets.md",
-      "sha256": "ab078a4685aa5d62c719b5964441a4dfe2e3e4526221ede6790f17d60314cfe4",
+      "sha256": "4ba0f402861d8dd31ed6f8cdfe391baea6f0084ccf906aff277ee523df3d6e20",
       "mode": "644"
     },
     {
@@ -163,7 +163,7 @@
     },
     {
       "path": "adapters/opencode/bb-moms.md",
-      "sha256": "3b272a3db62dec9ff102ff63deeb49089dfcfb9743ee1be7cd3db673b6af461e",
+      "sha256": "32a775f2cc8637a18e5d52d57c533863970774dec9dc6df1a3d5726918649005",
       "mode": "644"
     },
     {
