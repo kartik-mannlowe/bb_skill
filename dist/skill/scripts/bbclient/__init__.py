@@ -6,6 +6,7 @@
     api.py        one method per verified brewboard_backend.api.* endpoint (no others)
     service.py    the /bb operations: validation, filters, normalised output shapes
     render.py     Markdown tables for the agent to print verbatim
+    ui.py         readable terminal output for people (colour, symbols, banner, errors); never for agents
 
 Standard library only (Python 3.8+), so it runs wherever the coding agent runs.
 """

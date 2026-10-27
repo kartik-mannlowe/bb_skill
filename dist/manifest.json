@@ -3,7 +3,7 @@
   "files": [
     {
       "path": "skill/SKILL.md",
-      "sha256": "ddd6378555aec69b6ccd748041804ecb4dfa3e1852a04e6dd0980803f3886dee",
+      "sha256": "22ff0ab87a56e4cc58187e244084f6c41add78981e3c31d257495e06b9404318",
       "mode": "644"
     },
     {
@@ -18,12 +18,12 @@
     },
     {
       "path": "skill/scripts/bb.py",
-      "sha256": "4132d8a8beb70d924a320ff926ab5aab3e4f66d9fc84bab241b7df7e25f73d03",
+      "sha256": "dec176ea1830ba2502c69a2cb6b47f1be3a0fe73ed3bf7e098a9859a26acb7f3",
       "mode": "755"
     },
     {
       "path": "skill/scripts/bbclient/__init__.py",
-      "sha256": "4bb7f6887f8ac58b0033e1b1d51bc0c69e6fc6fd84b3c160798ad0829f6ff85f",
+      "sha256": "9699a96d31f892c3b079c151d7044b7e0842cc033ce245a87caa6fcd54cbb4d0",
       "mode": "644"
     },
     {
@@ -33,7 +33,7 @@
     },
     {
       "path": "skill/scripts/bbclient/config.py",
-      "sha256": "bf976138224de1c0a0fbd0bcafdb02f9a8111f4293efcc6e5d205716252914b2",
+      "sha256": "e656d6027e276a340f50e6999a1f355cdbd4693a19c2a08d015455a1038a08b1",
       "mode": "644"
     },
     {
@@ -48,7 +48,7 @@
     },
     {
       "path": "skill/scripts/bbclient/render.py",
-      "sha256": "1ac61c2184ad1da53707c8afb4f996989f256c328ff3e4db05683aaefab0cbcb",
+      "sha256": "a1456c338ead605d8814536ee0467e464fd07b3e3e1be57516ac7eacf8c0079e",
       "mode": "644"
     },
     {
@@ -62,8 +62,13 @@
       "mode": "644"
     },
     {
+      "path": "skill/scripts/bbclient/ui.py",
+      "sha256": "09119edd817a9d1fd97763f979665f27ba7a297f10fc7ee36e659aad34bd64ca",
+      "mode": "644"
+    },
+    {
       "path": "adapters/claude-code/bb-create_mom.md",
-      "sha256": "7d9aa59ce41db2f2e16016adcef08cff94d9aa94490f5a3e388123f4430fead0",
+      "sha256": "e5e0a167dad2eaf67933227a730d5d204aeca4708a7ce7390e87161cd7221be2",
       "mode": "644"
     },
     {
@@ -98,7 +103,7 @@
     },
     {
       "path": "adapters/claude-code/bb-log_time.md",
-      "sha256": "f705ae21c65cefc794f38f1508cf9d41f2c0bed82596add20447b7341fb10ab0",
+      "sha256": "0300b0d2f6e381e3c0b32e47c021785d813d6d240c8e7abe2489e28d17185156",
       "mode": "644"
     },
     {
@@ -123,12 +128,12 @@
     },
     {
       "path": "adapters/claude-code/bb.md",
-      "sha256": "c80f4f6945e7ac56753987972902c09ad0651c74c74239849a9fb9dabfb5813b",
+      "sha256": "21d69773e00b709bf06bebe42e0488f5dab276b4f83acf4dbd3e715c3203a2e4",
       "mode": "644"
     },
     {
       "path": "adapters/opencode/bb-create_mom.md",
-      "sha256": "7d9aa59ce41db2f2e16016adcef08cff94d9aa94490f5a3e388123f4430fead0",
+      "sha256": "e5e0a167dad2eaf67933227a730d5d204aeca4708a7ce7390e87161cd7221be2",
       "mode": "644"
     },
     {
@@ -163,7 +168,7 @@
     },
     {
       "path": "adapters/opencode/bb-log_time.md",
-      "sha256": "9703a8a8f2ec49a65d4cd3b8999ab1eae2676912dcf359aee688191a40951030",
+      "sha256": "f7125fd3f75d669e5cf67958c03c25cce43fe043bcff0dc8a1cf1599a377359c",
       "mode": "644"
     },
     {
@@ -188,7 +193,7 @@
     },
     {
       "path": "adapters/opencode/bb.md",
-      "sha256": "399b53a20462549f2d8ee4b5538bf8bdc41e046638bf5a7ad33d7af9a0c8f463",
+      "sha256": "581e883882a99a8745af63a4e3d3aab1178ec486d36b06584d71e093f33ed315",
       "mode": "644"
     },
     {

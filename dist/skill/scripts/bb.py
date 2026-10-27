@@ -7,9 +7,11 @@ Talks to the Brewboard backend over its HTTP API: the whitelisted methods of the
 data path: no generic Frappe /api/resource calls, no MCP. Standard library only, so it
 runs wherever the coding agent runs (Python 3.8+).
 
-Output: JSON on stdout (or a Markdown table with --format table, for the agent to print
-verbatim). Errors: JSON on stderr and exit code 1:
+Output: JSON on stdout, or Markdown with --format table for the agent to print verbatim
+(bbclient/render.py). A person running init / auth-check / whoami / logout in a terminal gets
+readable text instead (bbclient/ui.py; --format json keeps JSON). Errors: exit code 1 and JSON on stderr
     {"error": "<code>", "message": "...", "status": <http status>}
+except for those four commands in text mode on a terminal, which print the same information as text.
 Codes: see bbclient/errors.py (not_configured, auth_failed, forbidden, not_found,
        validation_error, unreachable, write_outcome_unknown, api_unsupported, ...)
 
@@ -32,7 +34,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from bbclient import config, diagnose, render, service  # noqa: E402
+from bbclient import config, diagnose, render, service, ui  # noqa: E402
 from bbclient.api import BrewboardAPI  # noqa: E402
 from bbclient.errors import BBError, unsupported  # noqa: E402
 from bbclient.transport import Transport  # noqa: E402
@@ -50,6 +52,26 @@ def emit_as(a, data, table_fn) -> None:
         emit(data)
 
 
+def wants_text(a) -> bool:
+    """--format text, or auto (the default) when a person is reading the terminal."""
+    fmt = getattr(a, "format", "auto")
+    return fmt == "text" or (fmt == "auto" and sys.stdout.isatty())
+
+
+def human_errors(a) -> bool:
+    """Readable error text instead of JSON, only for the commands people run themselves (init, auth-check,
+    whoami, logout) in text mode, and only when stderr is a terminal. Every other command keeps JSON errors
+    even on a terminal, so an agent whose shell is a pseudo-terminal still gets the JSON it parses."""
+    return getattr(a, "format", None) in ("auto", "text") and wants_text(a) and sys.stderr.isatty()
+
+
+def emit_account(a, kind: str, out: dict) -> None:
+    if wants_text(a):
+        sys.stdout.write(ui.account_text(kind, out, ui.Style(sys.stdout)))
+    else:
+        emit(out)
+
+
 def make_api(cfg: dict | None = None) -> BrewboardAPI:
     cfg = cfg or config.load_config()
     return BrewboardAPI(Transport(cfg["url"], cfg.get("api_key"), cfg.get("api_secret"), timeout=config.timeout(),
@@ -61,6 +83,8 @@ def make_api(cfg: dict | None = None) -> BrewboardAPI:
 def cmd_init(a) -> None:
     cfg = config.load_config(required=False)
     interactive = sys.stdin.isatty()
+    if interactive and sys.stdout.isatty() and wants_text(a):
+        ui.print_banner(sys.stdout, ui.installed_version(), [ui.Style(sys.stdout).heading("Sign in to Brewboard")])
 
     def ask(label: str, current: str | None, secret: bool = False) -> str | None:
         if not interactive:
@@ -88,10 +112,10 @@ def cmd_init(a) -> None:
         guest = BrewboardAPI(Transport(url, timeout=config.timeout()))
         per_client = service.supports_client_credentials(guest)
         if not per_client:
-            sys.stderr.write(
+            sys.stderr.write(ui.Style(sys.stderr).status("warn",
                 "WARNING: this Brewboard backend has no per-client credentials. Signing in replaces the\n"
-                "account's single API secret: the Brewboard web UI and any other client signed in as this\n"
-                "user will be signed out, and a later web UI sign-in will sign bb.py out.\n")
+                "  account's single API secret: the Brewboard web UI and any other client signed in as this\n"
+                "  user will be signed out, and a later web UI sign-in will sign bb.py out.") + "\n")
             if input('Type "yes" to continue: ').strip().lower() != "yes":
                 raise BBError("bad_input", "Sign-in cancelled; nothing was changed.")
         usr = a.user or input("Brewboard login (email): ").strip()
@@ -137,7 +161,7 @@ def cmd_init(a) -> None:
         notes.append(f"{', '.join(config.env_overrides())} set in the environment override the saved config.")
     if notes:
         out["notes"] = notes
-    emit(out)
+    emit_account(a, "init", out)
 
 
 def cmd_logout(a) -> None:
@@ -157,7 +181,7 @@ def cmd_logout(a) -> None:
     if any(src == "env" for k, src in (cfg.get("_source") or {}).items() if k != "url"):
         out["warning"] = "BB_API_KEY / BB_API_SECRET are set in the environment; unset them too."
     out["config_file"] = str(config.clear_credentials())
-    emit(out)
+    emit_account(a, "logout", out)
 
 
 def cmd_credentials(a) -> None:
@@ -176,7 +200,7 @@ def cmd_whoami(a) -> None:
     service.verify_site(api)
     info = service.whoami(api)
     st = config.remember_identity(info)
-    emit({**info, "context": config.context_view(st)})
+    emit_account(a, "whoami", {**info, "context": config.context_view(st)})
 
 
 def cmd_auth_check(a) -> None:
@@ -185,21 +209,30 @@ def cmd_auth_check(a) -> None:
     out = {"credentials": config.credential_view(cfg), "url": cfg.get("url")}
     if not all(cfg.get(k) for k in ("url", "api_key", "api_secret")):
         out["status"] = "not_configured"
-        emit(out)
+        emit_auth_check(a, out)
         return
     api = make_api(cfg)
     try:
         service.verify_site(api)
         out["site"] = "brewboard_backend"
         me = service.whoami(api)
-        out.update(status="ok", user=me["user"], roles=[r for r in me["roles"] if r.startswith("BB ") or
+        out.update(status="ok", user=me["user"], full_name=me.get("full_name"),
+                   roles=[r for r in me["roles"] if r.startswith("BB ") or
                                                          r == "System Manager"])
     except BBError as e:
         e = diagnose.diagnose_auth_failure(api, e, cfg)
         out.update(status=e.code, message=e.message)
         if e.extra.get("next_steps"):
             out["next_steps"] = e.extra["next_steps"]
-    emit(out)
+    emit_auth_check(a, out)
+
+
+def emit_auth_check(a, out: dict) -> None:
+    """--format table is what /bb init prints (SKILL.md); the other formats are those of emit_account."""
+    if a.format == "table":
+        sys.stdout.write(render.connection(out, config.context_view(config.load_state())))
+    else:
+        emit_account(a, "auth-check", out)
 
 
 # Free text (titles, subjects, descriptions) can come from Brewboard records written by people outside the
@@ -264,6 +297,19 @@ def cmd_ctx(a) -> None:
         sys.stdout.write(render.context(st, view))
     else:
         emit(data)
+
+
+def cmd_home(a) -> None:
+    """The /bb home screen: version, saved sign-in and context. Local only: never touches the network,
+    so it reports a *saved* sign-in, not a verified one (auth-check verifies)."""
+    cfg = config.load_config(required=False)
+    st = config.load_state()
+    signed_in = all(cfg.get(k) for k in ("url", "api_key", "api_secret"))
+    user = (cfg.get("user") or st.get("user")) if signed_in else None
+    data = {"version": ui.installed_version(), "signed_in": signed_in, "user": user,
+            "full_name": st.get("full_name") if user and st.get("user") == user else None,
+            "site": cfg.get("url") if signed_in else None, "context": config.context_view(st)}
+    emit_as(a, data, lambda d: render.home(d, ui.terminal_width()))
 
 
 # =============================================================== reads
@@ -341,8 +387,8 @@ def cmd_create_task(a) -> None:
     merge_file_fields(a, {"subject": "str", "desc": "str"})
     if not a.subject:
         raise BBError("bad_input", "a task subject is required (--subject, or \"subject\" in --file)")
-    emit(service.create_task(make_api(), config.load_state(), a.subject, a.project, a.desc, a.priority, a.status,
-                             a.start, a.due, a.issue, a.parent, not a.no_assign))
+    emit_as(a, service.create_task(make_api(), config.load_state(), a.subject, a.project, a.desc, a.priority,
+                                   a.status, a.start, a.due, a.issue, a.parent, not a.no_assign), render.create_task)
 
 
 def cmd_log_time(a) -> None:
@@ -358,16 +404,17 @@ def cmd_log_time(a) -> None:
     merge_file_fields(a, {"desc": "str", "new_task": "str", "task_desc": "str"})
     if not a.desc:
         raise BBError("bad_input", "a description of the work is required (--desc, or \"desc\" in --file)")
-    emit(service.log_time(make_api(), config.load_state(), a.hours, a.activity, a.desc, a.task, a.new_task,
-                          a.project, a.date, a.from_time, a.billable, a.meeting, a.workstream, a.task_desc,
-                          a.allow_duplicate))
+    emit_as(a, service.log_time(make_api(), config.load_state(), a.hours, a.activity, a.desc, a.task, a.new_task,
+                                a.project, a.date, a.from_time, a.billable, a.meeting, a.workstream, a.task_desc,
+                                a.allow_duplicate), render.log_time)
 
 
 def cmd_create_mom(a) -> None:
     data = service.read_json_input(a.file)
     if a.project and isinstance(data, dict):
         data["project"] = a.project
-    emit(service.create_mom(make_api(), config.load_state(), data, a.create_tasks, a.allow_duplicate))
+    emit_as(a, service.create_mom(make_api(), config.load_state(), data, a.create_tasks, a.allow_duplicate),
+            render.create_mom)
 
 
 def collect_changes(a) -> dict:
@@ -391,8 +438,8 @@ def collect_changes(a) -> dict:
 
 
 def cmd_update(a) -> None:
-    emit(service.update_record(make_api(), config.load_state(), a.doctype, a.name, collect_changes(a),
-                               a.completed_by, a.project))
+    emit_as(a, service.update_record(make_api(), config.load_state(), a.doctype, a.name, collect_changes(a),
+                                     a.completed_by, a.project), render.update)
 
 
 def cmd_submit(a) -> None:
@@ -401,20 +448,29 @@ def cmd_submit(a) -> None:
 
 
 def cmd_delete(a) -> None:
-    emit(service.delete_record(make_api(), config.load_state(), a.doctype, a.name, a.project))
+    emit_as(a, service.delete_record(make_api(), config.load_state(), a.doctype, a.name, a.project), render.delete)
 
 
 # =============================================================== CLI wiring
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="bb.py", description="Brewboard CLI for the /bb agent skill. Prints JSON.")
+    p = argparse.ArgumentParser(prog="bb.py", description="Brewboard CLI for the /bb agent skill. Prints JSON "
+                                                          "(Markdown with --format table).")
+    if hasattr(p, "color"):  # Python 3.14+ colours --help by default; keep it plain and predictable
+        p.color = False
     sub = p.add_subparsers(dest="cmd", metavar="command")
     sub.required = True
 
-    def add(name, fn, help_text, aliases=(), fmt=False):
+    def add(name, fn, help_text, aliases=(), fmt=False, extra_formats=()):
         sp = sub.add_parser(name, help=help_text, description=help_text, aliases=list(aliases))
+        if hasattr(sp, "color"):
+            sp.color = False
         sp.set_defaults(fn=fn)
-        if fmt:
+        if fmt == "text":
+            sp.add_argument("--format", choices=["auto", "json", "text", *extra_formats], default="auto",
+                            help="auto (default): readable text in a terminal, JSON otherwise"
+                                 + ("; table: Markdown for the agent to print verbatim" if extra_formats else ""))
+        elif fmt:
             sp.add_argument("--format", choices=["json", "table"], default="json",
                             help="table: Markdown for the agent to print verbatim")
         return sp
@@ -423,7 +479,8 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--limit", type=int, default=limit_default, help="rows to show (positive integer)")
         sp.add_argument("--no-prompt", action="store_true", help="table without the selection prompt line")
 
-    s = add("init", cmd_init, "Save the Brewboard URL + API key/secret (prompts if omitted) and verify the login")
+    s = add("init", cmd_init, "Save the Brewboard URL + API key/secret (prompts if omitted) and verify the login",
+            fmt="text")
     s.add_argument("--url")
     s.add_argument("--key")
     s.add_argument("--secret")
@@ -431,11 +488,14 @@ def build_parser() -> argparse.ArgumentParser:
                    help="sign in with email + password (prompted) to obtain API keys; rotates the secret")
     s.add_argument("--user", help="login email for --login")
 
-    add("whoami", cmd_whoami, "Show the logged-in user, roles and saved context")
+    add("whoami", cmd_whoami, "Show the logged-in user, roles and saved context", fmt="text")
 
-    add("auth-check", cmd_auth_check, "Read-only: credential source, saved time and whether Brewboard accepts them")
+    add("auth-check", cmd_auth_check, "Read-only: credential source, saved time and whether Brewboard accepts them",
+        fmt="text", extra_formats=("table",))
 
-    add("logout", cmd_logout, "Revoke this CLI's credential on the server and remove it locally")
+    add("logout", cmd_logout, "Revoke this CLI's credential on the server and remove it locally", fmt="text")
+
+    add("home", cmd_home, "The /bb home screen: banner, version, saved sign-in and context (local only)", fmt=True)
 
     s = add("credentials", cmd_credentials, "List your Brewboard API credentials (metadata only) or revoke one")
     s.add_argument("--revoke", metavar="CREDENTIAL", help="revoke one of your credentials by ID")
@@ -495,7 +555,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("url")
     s.add_argument("--dir", required=True, help="directory to save into (outside the repository)")
 
-    s = add("update", cmd_update, "Change a task, issue, MoM or one time log (`update log <ENTRY>`)")
+    s = add("update", cmd_update, "Change a task, issue, MoM or one time log (`update log <ENTRY>`)", fmt=True)
     s.add_argument("doctype", help="task, issue, mom, or log (a time-log entry)")
     s.add_argument("name")
     s.add_argument("--set", action="append", metavar="FIELD=VALUE")
@@ -508,12 +568,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("doctype")
     s.add_argument("name")
 
-    s = add("delete", cmd_delete, "Delete minutes of meeting (the only deletion the API offers)")
+    s = add("delete", cmd_delete, "Delete minutes of meeting (the only deletion the API offers)", fmt=True)
     s.add_argument("doctype")
     s.add_argument("name")
     s.add_argument("--project", help="project identifier")
 
-    s = add("create-task", cmd_create_task, "Create a task in the selected (or given) project")
+    s = add("create-task", cmd_create_task, "Create a task in the selected (or given) project", fmt=True)
     s.add_argument("--subject", help="required, here or in --file")
     s.add_argument("--project", help="project identifier")
     s.add_argument("--desc")
@@ -534,7 +594,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--workspace", action="store_true", help="all workspace members instead (role-restricted)")
     s.add_argument("--search")
 
-    s = add("log-time", cmd_log_time, "Create a time log on a task (optionally creating the task first)")
+    s = add("log-time", cmd_log_time, "Create a time log on a task (optionally creating the task first)", fmt=True)
     s.add_argument("--hours", required=True, help="2, 2.5, 2h, 90m, 1h30")
     s.add_argument("--activity", default="Development")
     s.add_argument("--desc", help="what was done (required, here or in --file)")
@@ -574,7 +634,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--search")
     listing(s, 20)
 
-    s = add("create-mom", cmd_create_mom, "Create minutes of meeting from a JSON file")
+    s = add("create-mom", cmd_create_mom, "Create minutes of meeting from a JSON file", fmt=True)
     s.add_argument("--file", required=True, help="path to MoM JSON ('-' for stdin); see reference/contract.md")
     s.add_argument("--project", help="project identifier (default: \"project\" in the JSON, else the selected one)")
     s.add_argument("--create-tasks", action="store_true", help="create a task for each open action item")
@@ -611,7 +671,10 @@ def main(argv=None) -> int:
     except BBError as e:
         if e.code == "auth_failed" and args.cmd not in ("init", "logout"):
             e = explain_auth_failure(e)
-        sys.stderr.write(json.dumps(e.as_dict(), indent=2, ensure_ascii=False, default=str) + "\n")
+        if human_errors(args):  # a person is reading: problem, context, next step
+            sys.stderr.write(ui.error_text(e.as_dict(), ui.Style(sys.stderr)))
+        else:
+            sys.stderr.write(json.dumps(e.as_dict(), indent=2, ensure_ascii=False, default=str) + "\n")
         return 1
     except KeyboardInterrupt:
         return 130

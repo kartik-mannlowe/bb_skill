@@ -132,5 +132,5 @@ test("a failing agent does not stop the others (partial installation)", { skip: 
 
 test("packaged files are checked against the manifest before installing", () => {
   const n = readManifest(require("../lib/paths").resolvePaths(process.env).distDir).files.length;
-  assert.strictEqual(n, 39);
+  assert.strictEqual(n, 40);
 });

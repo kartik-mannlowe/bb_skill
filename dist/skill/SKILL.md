@@ -11,7 +11,7 @@ Invocation is `/bb <subcommand> [free text]`. A bare `/bb` or `/bb help` shows t
 
 Every operation runs `python3 ~/.bb/skill/scripts/bb.py <command> [options]` (on Windows `python` and `%USERPROFILE%\.bb\skill\scripts\bb.py`). Below, `bb.py` means that full command. It calls only the Brewboard backend's whitelisted methods (`/api/method/brewboard_backend.api.<module>.<function>`); the endpoint for each operation is listed in `reference/contract.md`. There is no other backend, no MCP tool and no generic ERPNext REST fallback. Never call ERPNext URLs yourself (curl, WebFetch) to get Brewboard data.
 
-`bb.py` prints JSON on stdout. With `--format table` (list commands, `get`, `ctx`) it prints a ready Markdown table instead. On failure it prints `{"error": <code>, "message": ...}` on stderr and exits 1. Use `--help` on any command if unsure.
+`bb.py` prints JSON on stdout. With `--format table` (list commands, `get`, `ctx`, `home`, `auth-check` and the writes `create-task`, `log-time`, `create-mom`, `update`, `delete`) it prints ready Markdown instead: a `###` heading, a short summary line, the table or record, then the fetched-at line and the prompt. Print that output verbatim. On failure it prints `{"error": <code>, "message": ...}` on stderr and exits 1. (A person running `init`, `auth-check`, `whoami` or `logout` in their own terminal sees readable text; when you run those four yourself, always add `--format json`, except where a workflow says `--format table`, as init does.) Use `--help` on any command if unsure.
 
 If an operation is not offered by the Brewboard API, `bb.py` fails with `api_unsupported` before sending anything. Tell the user plainly that Brewboard does not support it (see "Not supported" at the end); never work around it.
 
@@ -31,7 +31,7 @@ The context only remembers selections. It never holds list data: every list is f
 
 A bare `/bb` (or `/bb help`) is the **Brewboard home screen**. It must look and behave the same every time.
 
-1. Run `bb.py ctx show` and print a compact heading plus one context line: logged-in user, project, task, tickets (say "none" for anything not selected). Do not print a command-reference table.
+1. Run `bb.py home --format table` and print its output verbatim: the Brewboard banner (in a code block), the account line and the context line. It is local only and fast. Print it once per `/bb`: not again while paging through the menu, and never print the banner anywhere else (not in direct commands, not after a selection). Do not print a command-reference table. The account line reports the *saved* sign-in; it is verified when a command runs.
 2. Present the menu with the agent's **native interactive selection UI**. Never print a numbered `1. 2. 3.` list when a native UI exists, and never mix the two styles.
 3. Selecting an option runs that workflow immediately. Do not make the user retype a `/bb` subcommand.
 4. **One implementation per workflow.** Each option runs the section of the same name under "Subcommands", exactly as the direct command does. Lists use the record-selection UI in "Selecting records" (Markdown table, then a typed ID). The native selector is used only for the menu itself, never for picking a project, task, ticket, cycle or meeting. A task or ticket picked through the menu gets the same automatic attachment retrieval as one picked through the direct command ("Task and ticket attachments").
@@ -78,7 +78,7 @@ Do not expose backend implementation names or terminology in the menu.
 - **Keep real secrets out of the chat.** Don't ask the user to paste an API secret or password and never print `~/.bb/config.json`. They would end up in the conversation log.
 - **Use absolute dates.** Resolve "yesterday", "last Friday", "this morning" to YYYY-MM-DD (and HH:MM) from today's date, and show the absolute value in confirmations, so the user can catch a wrong guess.
 - **Keep lists short.** Task and ticket lists show 5 records by default (see "Task and ticket list arguments"). Other lists show at most about 10 rows (`--limit 10`) and offer a filter or "show more" for the rest.
-- **Never invent data.** A field Brewboard did not return is shown as `—` (the tables do this). Never fill in customers, owners, dates, relationships or decisions that are not in the data.
+- **Never invent data.** A field Brewboard did not return is `—` in list tables and is left out of record views (`bb.py` does both). Never fill in customers, owners, dates, relationships or decisions that are not in the data.
 - **Shell safety.** Text from Brewboard records (project names, task and ticket subjects, descriptions, comments, URLs found in descriptions) and free text the user wrote can contain shell syntax such as `$(…)`, backticks, quotes or `;`, and tickets are often written by people outside the team. Never put such text on a `bb.py` command line, not even inside double quotes. On the command line go only IDs, numbers, dates and times, the option values shown in this file, and short search keywords or status names in single quotes made only of letters, digits, spaces, `-` and `,` (drop any other character from keywords; if a status name has one, ask the user instead of running the command). Everything else is one line of JSON on stdin through `--file -`, with the heredoc delimiter in single quotes:
 
 ```
@@ -94,19 +94,19 @@ Run it exactly in this shape: nothing before `BB_JSON` on the closing line, not 
   - `endpoint_auth_failed`: the credentials work, only that endpoint refused. Do not suggest signing in again; report the endpoint.
   - `auth_failed` with `identity_check`: the identity check itself could not run (e.g. unreachable); say so.
   `bb.py auth-check` shows, read-only, where the credentials come from, which credential is in use and when it expires, and whether Brewboard accepts it. `bb.py logout` revokes this CLI's credential only. `bb.py credentials` lists the user's signed-in clients (`--revoke <ID>`, `--revoke-others`); confirm before revoking.
-- **Translate errors.** Relay the server's message in plain words, then: `not_configured` → offer `/bb init`; `forbidden` → the user's Brewboard role or project membership does not allow it (name what was refused); `no_project` → run the list_projects flow; `validation_error` → say what Brewboard rejected and propose the fix (for an overlap, a different start time); `not_brewboard` → the saved URL is not a Brewboard backend; `unreachable` → check the URL, VPN, or that the server is running; `redirect_refused` → the saved address redirects elsewhere and `bb.py` does not follow redirects (they could carry the credentials away); tell the user which address it pointed to and offer `/bb init` with the right one, never a workaround; `api_unsupported` → Brewboard does not offer this operation.
+- **Translate errors.** Present every error the same way, in three short parts: **What failed** in one plain line, the context `bb.py` returned (record IDs, `valid` values, `applied`, `task_created`, `existing`), and **Next step** (one action). Never paste the raw JSON, a stack trace or anything from `~/.bb/config.json`. Relay the server's message in plain words, then: `not_configured` → offer `/bb init`; `forbidden` → the user's Brewboard role or project membership does not allow it (name what was refused); `no_project` → run the list_projects flow; `validation_error` → say what Brewboard rejected and propose the fix (for an overlap, a different start time); `not_brewboard` → the saved URL is not a Brewboard backend; `unreachable` → check the URL, VPN, or that the server is running; `redirect_refused` → the saved address redirects elsewhere and `bb.py` does not follow redirects (they could carry the credentials away); tell the user which address it pointed to and offer `/bb init` with the right one, never a workaround; `api_unsupported` → Brewboard does not offer this operation.
 
 ## Selecting records
 
 This is the only UI for picking a project, task, ticket, cycle or meeting. It is identical for the direct commands, for the `/bb` menu options and for any other workflow that needs a pick (log_time, create_mom, find).
 
-1. Run the list command with `--format table` and print its output **verbatim** as chat text: the heading, the table, the "Showing N of M" line if present, the fetched-at line and the prompt line. Do not re-type, re-order, re-number or summarise the rows; do not add or drop columns.
+1. Run the list command with `--format table` and print its output **verbatim** as chat text: the heading, the summary line, the table, the "Showing N of M" line if present, the fetched-at line and the prompt line. Do not re-type, re-order, re-number or summarise the rows; do not add or drop columns.
 2. The output ends with the prompt, e.g. **Enter the task ID to select.** or **Enter the ticket ID(s) to select (comma-separated, or `all`).**
 3. **End the turn there and wait for the user's typed reply.** Do not call `AskUserQuestion` or any native selector for record selection, and do not offer options, checkboxes or radio buttons. The table is the UI.
 4. Read the reply as an ID from the ID column (case-insensitive; tickets also accept several IDs or `all`). If it is not one of the IDs in the table just printed, say which IDs are valid and ask again. A reply that is only a number is not an ID: ask for the ID. A short reply that is just an ID right after a Brewboard table is that selection.
 5. Exactly one record: print the table and select it without asking. No records: the output says so; offer a different filter.
 
-**Selected marker.** A record that is already selected in the context has `*` in the `Sel` column. The ID column always holds exactly the record ID returned by the backend, with no marker. `*` is the only selected-state marker: never `✓`, `✔`, `(selected)` or `(current)`, in any column. A missing value is `—`.
+**Selected marker.** A record that is already selected in the context has `*` in the `Sel` column. The ID column always holds exactly the record ID returned by the backend (shown as inline code), with no marker. `*` is the only selected-state marker: never `✓`, `✔`, `(selected)` or `(current)`, in any column. A missing value is `—`. An empty list says so and suggests a next step (another status, or creating a record); never present it as a failure.
 
 Never ask whether the user prefers a table or a list. There is no list display mode.
 
@@ -116,8 +116,8 @@ The tables `bb.py --format table` prints:
 
 | Sel | ID | Project | Status | Priority | % Complete | End Date | Open Tasks |
 |---|---|---|---|---|---|---|---|
-|  | MA | Mobile App v2 | Open | High | 20% | 2026-12-06 | 4 |
-| * | CP | Customer Portal Revamp | Open | Medium | 45% | 2026-11-11 | 6 |
+|  | `MA` | Mobile App v2 | Open | High | 20% | 2026-12-06 | 4 |
+| * | `CP` | Customer Portal Revamp | Open | Medium | 45% | 2026-11-11 | 6 |
 
 The ID is the Brewboard project identifier. Projects without one show `(no identifier)` and cannot be used until an administrator gives them one.
 
@@ -125,7 +125,7 @@ The ID is the Brewboard project identifier. Projects without one show `(no ident
 
 | Sel | ID | Subject | Status | Priority | Due | Assignees | Cycle |
 |---|---|---|---|---|---|---|---|
-| * | TASK-2026-00009 | Investigate Android crash on app start | Working | Urgent | 2026-10-05 (overdue) | dev@bb.local, qa@bb.local | Beta hardening |
+| * | `TASK-2026-00009` | Investigate Android crash on app start | Working | Urgent | **2026-10-05 (overdue)** | dev@bb.local, qa@bb.local | Beta hardening |
 
 Single selection. On projects with custom statuses the Status column shows the custom stage.
 
@@ -133,7 +133,7 @@ Single selection. On projects with custom statuses the Status column shows the c
 
 | Sel | ID | Subject | Status | Priority | Type | Raised By | Opened |
 |---|---|---|---|---|---|---|---|
-|  | ISS-2026-00005 | App crashes on Android 14 when opening cart | Open | High | Bug | Daniel Brooks | 2026-10-04 |
+|  | `ISS-2026-00005` | App crashes on Android 14 when opening cart | Open | High | Bug | Daniel Brooks | 2026-10-04 |
 
 Multi-selection: accept several IDs or `all`. "Raised By" is the user who created the ticket in Brewboard.
 
@@ -176,11 +176,11 @@ This is the only attachment rule; every workflow below refers to it. The user ne
 ## Subcommands
 
 ### init
-1. Run `bb.py auth-check` (read-only). It checks that the URL is a Brewboard backend, where the credentials come from, and who is signed in.
-2. If the status is `not_configured`, `credentials_rejected` or `not_brewboard`, first show its message and `next_steps`, then:
-   - Ask the user to run `python3 ~/.bb/skill/scripts/bb.py init` in their own terminal (in Claude Code they can type `! python3 ~/.bb/skill/scripts/bb.py init`). It prompts for the Brewboard URL, API key and secret (secret hidden), verifies them and saves `~/.bb/config.json` with mode 600. The recommended way is `bb.py init --login`: it prompts for the Brewboard email and password (hidden) and obtains a credential for this CLI only, which stays valid when the user signs in to the web UI (and vice versa) until it expires (90 days by default) or is revoked. Then run auth-check again.
+1. Run `bb.py auth-check --format table` (read-only) and print its output verbatim. It checks that the URL is a Brewboard backend, where the credentials come from, and who is signed in. The line under its heading says `Signed in` or names the problem with its status code.
+2. If the status is `not_configured`, `credentials_rejected` or `not_brewboard` (the output already shows the message and next steps), then:
+   - Ask the user to run `python3 ~/.bb/skill/scripts/bb.py init` in their own terminal (in Claude Code they can type `! python3 ~/.bb/skill/scripts/bb.py init`). In a terminal it shows the Brewboard banner and ends with a readable summary. It prompts for the Brewboard URL, API key and secret (secret hidden), verifies them and saves `~/.bb/config.json` with mode 600. The recommended way is `bb.py init --login`: it prompts for the Brewboard email and password (hidden) and obtains a credential for this CLI only, which stays valid when the user signs in to the web UI (and vice versa) until it expires (90 days by default) or is revoked. Then run auth-check again.
    - **Brewboard mock server** (localhost URL, user says it's the mock): you may run `bb.py init --url http://127.0.0.1:8000 --key bbkey_dev --secret bbsecret_dev` yourself; those are dummy credentials.
-3. On success show name, user ID, Brewboard roles (the `BB …` ones), site, and the saved context. If the user has none of `BB Project Manager`, `BB Project User`, `BB Analytics Admin`, `BB Ticket User` or `System Manager`, warn that Brewboard will refuse most requests. Only Project Managers and Project Users can log time or write minutes.
+3. On success the output already shows name, user ID, Brewboard roles, site, credential and the saved context: do not re-type it as another table or add a header row. If the user has none of `BB Project Manager`, `BB Project User`, `BB Analytics Admin`, `BB Ticket User` or `System Manager`, warn that Brewboard will refuse most requests. Only Project Managers and Project Users can log time or write minutes.
 
 ### list_projects
 1. Always call `bb.py projects --limit 10 --format table` afresh. It lists open projects (`--status all`, `--search TEXT`, `--archived`).
@@ -219,7 +219,7 @@ Syntax: `/bb list_tasks [status] [limit]` and `/bb list_tickets [status] [limit]
 
 **Menu and follow-ups.** Tasks or Tickets chosen from the `/bb` menu fetch with limit 5. If the user gives a limit later ("show 10", "list 20 open tickets"), re-run the same workflow with that limit (and status, if given).
 
-**More rows.** When fewer rows are shown than matched, the output already says `Showing 5 of 12. For more: /bb list_tasks Open 12`. Keep that line.
+**More rows.** When fewer rows are shown than matched, the output already says `Showing 5 of 12. For more: /bb list_tasks Open 12` (several statuses are comma-separated: `/bb list_tasks Open,Working 12`). Keep that line. When the list was narrowed in a way the `/bb` syntax cannot express (`--all`, `--search`, `--mine`, `--cycle`, `--priority`), the line is just `Showing 5 of 12.`: re-run the same `bb.py` command with a larger `--limit` if the user wants the rest.
 
 The limit applies only to list records. It is not an attachment count, and listing records never downloads their attachments. Attachments are retrieved only when a task or ticket becomes the active record ("Task and ticket attachments").
 
@@ -289,8 +289,8 @@ Parse what the user gave, e.g. `/bb log_time 2.5h on SSO role mapping` or `log 4
 
    Immediately after the table ask exactly: **Create this time log? Yes / Change / Cancel**, as plain text, and end the turn so the user types the answer. Do not use a native selector. Do not run `log-time` until the user explicitly answers yes. On Change, apply the edit and show the table again.
 
-8. Run `bb.py log-time --hours 2.5 --activity Development [--task <ID>] [--project <IDENTIFIER>] [--date YYYY-MM-DD] [--from HH:MM] [--billable] [--meeting <MOM-ID>] --file -` with `{"desc": "<what was done>"}` on stdin, or for a new task (instead of `--task`) `{"desc": "<what was done>", "new_task": "<subject>"}` ("Shell safety"). Run it once. On `write_outcome_unknown` or `server_error`, follow "No duplicate writes"; on `possible_duplicate`, show the existing entry and ask.
-9. Report the timesheet ID, the entry ID, from-to, the task (saying if it was newly created) and the status `bb.py` read back. Time logs are saved as **Draft**. Brewboard's API has no submit operation: tell the user to submit in Brewboard / ERPNext when they are ready, and that ERPNext only counts submitted timesheets in a task's actual time. If the log fails after a task was created, the error includes `task_created`; tell the user the task exists.
+8. Run `bb.py log-time --hours 2.5 --activity Development [--task <ID>] [--project <IDENTIFIER>] [--date YYYY-MM-DD] [--from HH:MM] [--billable] [--meeting <MOM-ID>] --format table --file -` with `{"desc": "<what was done>"}` on stdin, or for a new task (instead of `--task`) `{"desc": "<what was done>", "new_task": "<subject>"}` ("Shell safety"). Run it once. On `write_outcome_unknown` or `server_error`, follow "No duplicate writes"; on `possible_duplicate`, show the existing entry and ask.
+9. Print the output verbatim. It shows the time-log entry and timesheet IDs, the date and from–to, the task (marked `(new task)` when it was created), the status `bb.py` read back and, for a Draft, that Brewboard's API has no submit operation (submit in Brewboard / ERPNext; ERPNext only counts submitted timesheets in a task's actual time). If the log fails after a task was created, the error includes `task_created`; tell the user the task exists.
 
 ### timesheets
 `/bb timesheets [since]`, e.g. `/bb timesheets`, `/bb timesheets this week`.
@@ -311,8 +311,8 @@ Source material can be notes the user typed or pasted, a transcript or notes fil
    - `action_items`: `actions` (verb first, at most 140 characters), `responsible` (user ID or a name), `target_date`
 
    There is no agenda field: put agenda items into `minutes` or `meeting_notes`. Don't invent decisions, owners or dates; leave them blank and ask. In the same review, ask whether the open action items should become tasks in the project.
-3. Write the approved MoM as JSON to a temp file (format in `reference/contract.md`, create_mom) and run `bb.py create-mom --file <path>`, adding `--create-tasks` if they said yes. Run it once (see "No duplicate writes").
-4. Report the MoM ID and any created tasks with their IDs and assignees, plus `warnings` (e.g. an action item whose responsible person is not a project member, so its task was created unassigned).
+3. Write the approved MoM as JSON to a temp file (format in `reference/contract.md`, create_mom) and run `bb.py create-mom --file <path> --format table`, adding `--create-tasks` if they said yes. Run it once (see "No duplicate writes").
+4. Print the output verbatim: the MoM ID, any created tasks with their IDs and assignees, and the warnings (e.g. an action item whose responsible person is not a project member, so its task was created unassigned).
 
 ### moms
 `/bb moms [search]`, e.g. `/bb moms`, `/bb moms gateway`.
@@ -334,7 +334,7 @@ Source material can be notes the user typed or pasted, a transcript or notes fil
 5. Offer next steps: select a found task or ticket (by typing its ID), or open a document. A task or ticket selected here is set in the context as in list_tasks / list_tickets step 4 and gets the same attachment sequence.
 
 ### status
-Run `bb.py ctx show --format table` and print it (plus `bb.py whoami` first if the user wants the login verified). It prints the heading `Brewboard status`, then one two-column table whose **first row is `User`**, with rows User, Roles, Site, Project, Task, Tickets (`none` for anything not selected). Print it as is: no extra header row, no `Field | Value` row, no ANSI colour codes, HTML or box-drawing characters. Border and header colours are drawn by Claude Code's renderer and cannot be controlled from Markdown.
+Run `bb.py ctx show --format table` and print it (plus `bb.py whoami --format json` first if the user wants the login verified). It prints the heading `### Brewboard status`, then one two-column table whose **first row is `User`**, with rows User, Roles, Site, Project, Task, Tickets (`none` for anything not selected). Print it as is: no extra header row, no `Field | Value` row, no ANSI colour codes, HTML or box-drawing characters. Border and header colours are drawn by Claude Code's renderer and cannot be controlled from Markdown.
 
 ```
 | User | Aarav Mehta (dev@bb.local) |
@@ -352,7 +352,7 @@ Requests like "change yesterday's 3h log to 2h", "mark TASK-... completed" or "a
 
 1. Find the record (`timesheets --since <date>`, `tasks --search`, `moms`, or `find`), then `bb.py get <type> <ID>`. For a task or ticket, run "Task and ticket attachments" before proposing the change.
 2. Show the change as before → after and confirm.
-3. Apply it:
+3. Apply it with `--format table` added to the `update` or `delete` command, and print the output verbatim (a Field / Before / After table of what Brewboard actually changed, or "No change"):
    - **Task / ticket fields:** `bb.py update task <ID> --set field=value [--set ...]` (or `update issue`) for IDs, dates and option values; text such as a subject, description or resolution goes on stdin with `--file -` as a JSON object ("Shell safety"). Brewboard changes one field per request, so several fields are applied one after another; if one fails, `bb.py` reports which were already applied. Task fields: subject, status, priority, exp_start_date, exp_end_date, description, parent_task, custom_assignees, custom_task_status, type. Ticket fields: subject, status, priority, issue_type, custom_target_date, description, resolution_details, custom_assignees, custom_issue_status. Completing a task needs `--completed-by <user>` (ask who did it; propose the user). Closing or resolving a ticket needs resolution_details first.
    - **A time log:** `bb.py update log <ENTRY> --set hours=2 [--set from_time='YYYY-MM-DD HH:MM']`; a new description goes on stdin with `--file -` as `{"description": "..."}` ("Shell safety"). Only the user's own Draft logs can be edited; changing hours moves the end time.
    - **Minutes:** `bb.py update mom <ID> --file <path>` with a JSON object of the fields to change (same names as create_mom output: meeting_topic, meeting_type, location, from_time, to_time, meeting_notes, decisions, assessment_observations, attendees, external_attendees, minutes, action_items). A table you send replaces that table as a whole: start from `bb.py get mom <ID>` and keep each row's `name`. Brewboard refuses an edit that would drop an action item already converted to a task.

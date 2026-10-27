@@ -35,7 +35,7 @@ def state_file() -> Path:
 
 
 def script_path() -> str:
-    """Where bb.py actually lives (~/.bb/skill/scripts for install.sh, elsewhere for other installs)."""
+    """Where bb.py actually lives (~/.bb/skill/scripts when installed by the npx installer)."""
     return str(Path(__file__).resolve().parent.parent / "bb.py")
 
 

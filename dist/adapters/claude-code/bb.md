@@ -6,7 +6,7 @@ Run the /bb Brewboard workflow. Read ~/.bb/skill/SKILL.md and follow it.
 
 Subcommand and arguments: $ARGUMENTS
 
-If no subcommand was given, show the Brewboard home screen exactly as the "Menu" section of SKILL.md describes: use the AskUserQuestion tool (four pages), never a numbered list.
+If no subcommand was given, show the Brewboard home screen exactly as the "Menu" section of SKILL.md describes: first print the output of `python3 ~/.bb/skill/scripts/bb.py home --format table` verbatim (once per /bb, never again while paging through the menu), then use the AskUserQuestion tool (four pages), never a numbered list.
 
 All Brewboard data comes from `python3 ~/.bb/skill/scripts/bb.py`, which calls the Brewboard backend's whitelisted HTTP API. Do not use MCP tools or call ERPNext URLs yourself for Brewboard data.
 

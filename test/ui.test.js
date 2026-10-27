@@ -54,6 +54,8 @@ test("the installer and bb.py share one banner file, and it ships in the package
   for (const line of [...art.small, ...art.mini]) assert.match(line, /^[\x20-\x7e]*[^ ]$/, "printable ASCII, no trailing space");
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "dist", "manifest.json"), "utf8"));
   assert.ok(manifest.files.some((f) => f.path === "skill/assets/banner.txt"));
+  const py = fs.readFileSync(path.join(__dirname, "..", "dist", "skill", "scripts", "bbclient", "ui.py"), "utf8");
+  assert.match(py, /parents\[2\] \/ "assets" \/ "banner\.txt"/);
 });
 
 test("the banner never overflows the terminal and degrades to a one-line wordmark", () => {
