@@ -7,6 +7,11 @@
       "mode": "644"
     },
     {
+      "path": "skill/assets/banner.txt",
+      "sha256": "1d5f6375e02070c5b104e0d9957a907b352c16b18534c18d3ad18ed3e4e71e9a",
+      "mode": "644"
+    },
+    {
       "path": "skill/reference/contract.md",
       "sha256": "459a59422b035e051437a7597d7326ad615e4f849bf9f1c4cea8da7a967b250f",
       "mode": "644"

@@ -40,7 +40,7 @@ test("first run without a terminal installs, checks, and explains how to sign in
   try {
     const r = await runBin([], { env: h.env });
     assert.strictEqual(r.status, 0, r.stderr);
-    assert.match(r.stdout, /Brewboard authentication required/);
+    assert.match(r.stdout, /AUTHENTICATION REQUIRED/);
     assert.match(r.stdout, /not an interactive terminal/);
     assert.ok(fs.existsSync(h.paths.bbPy));
     assert.ok(!fs.existsSync(h.paths.configFile));
@@ -53,11 +53,11 @@ test("Cancel at the first-run prompt creates nothing and asks for no password", 
   try {
     const tty = fakeTty();
     const run = main([], { env: h.env, stdin: tty.input, stdout: tty.output, stderr: sink() });
-    await drive(tty, [{ waitFor: "Would you like to sign in to Brewboard now?", send: [] },
-                      { waitFor: "Cancel", send: [KEY.down, KEY.enter] }]);
+    await drive(tty, [{ waitFor: "Sign in to Brewboard now?", send: [] },
+                      { waitFor: "Skip", send: [KEY.down, KEY.enter] }]);
     assert.strictEqual(await run, 0);
-    assert.match(tty.text(), /Sign-in skipped\. The skill stays installed/);
-    assert.ok(!/password/i.test(tty.text().split("Would you like")[1]));
+    assert.match(tty.text(), /Sign-in skipped\. Brewboard stays installed/);
+    assert.ok(!/password/i.test(tty.text().split("Sign in to Brewboard now?")[1]));
     assert.ok(!fs.existsSync(h.paths.configFile));
     assert.ok(fs.existsSync(h.paths.bbPy));
   } finally { h.cleanup(); }
@@ -80,14 +80,14 @@ test("Yes opens a tab with a secret-free command line and reports the tab's resu
       },
     };
     const run = main([], { env: h.env, stdin: tty.input, stdout: tty.output, stderr: sink(), deps });
-    await drive(tty, [{ waitFor: "Cancel", send: KEY.enter }]);
+    await drive(tty, [{ waitFor: "Skip", send: KEY.enter }]);
     assert.strictEqual(await run, 0);
     assert.strictEqual(launched[0], "--tab");
     assert.ok(launched.includes("--wizard") && launched.includes("--status-file"));
     assert.ok(!launched.some((a) => /pass|secret|token/i.test(a)), "no credential in the command line");
     assert.match(tty.text(), /Opening a new ptyxis tab/);
-    assert.match(tty.text(), /Sign-in completed in the other tab/);
-    assert.match(tty.text(), /start your coding agent/);
+    assert.match(tty.text(), /Signed in as dev@bb\.test \(in the sign-in tab\)/);
+    assert.match(tty.text(), /no coding agent is set up yet/, "no agent was installed here, so not \"ready\"");
   } finally { h.cleanup(); }
 });
 
@@ -133,15 +133,16 @@ test("existing valid sign-in: no prompt, no login, config untouched; rejected si
     const mtime = fs.statSync(h.paths.configFile).mtimeMs;
     let r = await runBin([], { env: h.env });
     assert.strictEqual(r.status, 0);
-    assert.match(r.stdout, /Signed in to .* as dev@bb\.test\. Nothing else to do\./);
-    assert.match(r.stdout, /start your coding agent/);
+    assert.match(r.stdout, /Signed in as dev@bb\.test/);
+    assert.match(r.stdout, /no coding agent is set up yet/);
+    assert.doesNotMatch(r.stdout, /AUTHENTICATION REQUIRED|Sign in to Brewboard now/, "no prompt when signed in");
     r = await runBin(["--check"], { env: h.env });
     assert.strictEqual(r.status, 0);
-    assert.match(r.stdout, /Brewboard sign-in\s+valid: dev@bb\.test/);
+    assert.match(r.stdout, /✓  Signed in as dev@bb\.test|ok  Signed in as dev@bb\.test/);
 
     srv.valid.clear();
     r = await runBin([], { env: h.env });
-    assert.match(r.stdout, /the saved credentials are no longer accepted/);
+    assert.match(r.stdout, /the saved credentials are no longer accepted/i);
     assert.match(r.stdout, /--login/);
     r = await runBin(["--check"], { env: h.env });
     assert.strictEqual(r.status, 3);

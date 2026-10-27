@@ -29,7 +29,8 @@ test("passes on this system and is strictly read-only", async () => {
     assert.ok(r.ok, renderPreflight(r));
     assert.deepStrictEqual(tree(h.home), before, "preflight wrote nothing");
     assert.strictEqual(row(r, "Brewboard sign-in").result, "missing");
-    assert.match(renderPreflight(r), /Claude Code\s+installed 9\.9\.9/);
+    assert.match(renderPreflight(r), /Claude Code 9\.9\.9/);
+    assert.strictEqual(row(r, "Claude Code").group, "Integrations");
   } finally { h.cleanup(); }
 });
 

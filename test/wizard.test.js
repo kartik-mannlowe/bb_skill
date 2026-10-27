@@ -46,8 +46,9 @@ test("new backend: gets a CLI credential, verifies it, saves it privately, print
     const out = tty.text();
     assert.ok(!out.includes(PASSWORD) && !out.includes(SECRET), "no password or secret on screen");
     assert.match(out, /Brewboard authentication configured successfully\./);
-    assert.match(out, /open a new terminal tab to start your coding agent/);
-    assert.match(out, /\/bb list_tasks/);
+    assert.match(out, /Signed in as dev@bb\.test\. This CLI has its own credential/);
+    assert.doesNotMatch(out, /You can close this tab/, "signed in inline: there is no tab to close");
+    assert.doesNotMatch(out, /\/bb list_tasks|Subcommands|start `claude`/, "no per-agent or command list");
     assert.ok(srv.calls("auth.get_current_user").length >= 2, "verified by the wizard and by bb.py auth-check");
     assert.strictEqual(readStatus(statusFile).state, "success");
     assert.ok(!JSON.stringify(readStatus(statusFile)).includes(SECRET));
@@ -241,4 +242,16 @@ test("capability probe: 401 means per-client credentials, like 403", async () =>
     assert.strictEqual((await run).state, "success", tty.text());
     assert.strictEqual(srv.calls("auth.login_and_get_keys")[0].body.client, "cli");
   } finally { await srv.close(); h.cleanup(); }
+});
+
+test("in the sign-in tab the completion says the tab can be closed, once sign-in really succeeded", async () => {
+  const { h, srv, tty, done } = await setup("per-client");
+  try {
+    const run = runWizard({ paths: h.paths, env: h.env, io: tty, pauseAtEnd: true });
+    await drive(tty, [...signIn(srv.url), { waitFor: "Press Enter to close this tab.", send: KEY.enter }]);
+    assert.strictEqual((await run).state, "success", tty.text());
+    const out = tty.text();
+    assert.match(out, /Brewboard authentication configured successfully\.[\s\S]*You can close this tab\./);
+    assert.ok(out.indexOf("Signed in as Dev Tester") < out.indexOf("configured successfully"), "success only after the check");
+  } finally { await done(); }
 });

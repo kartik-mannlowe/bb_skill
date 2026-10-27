@@ -240,7 +240,7 @@ test("11: --dry-run changes nothing at all (and creates nothing on an empty home
     r = await runBin(["uninstall", "--dry-run"], h.env);
     assert.strictEqual(r.status, 0, r.err);
     assert.match(r.out, /dry run: nothing will be changed/);
-    assert.match(r.out, /Remove \(39\)/);
+    assert.match(r.out, /Remove \(40\)/);
     assert.strictEqual(snapshot(h.home), before);
   } finally { h.cleanup(); }
 });
