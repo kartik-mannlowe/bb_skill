@@ -126,10 +126,16 @@ def save_config(url: str, api_key: str, api_secret: str, obtained_via: str | Non
 
 
 def clear_credentials() -> Path:
-    """Remove the credentials from config.json, keeping the URL (used by `logout`)."""
+    """Remove the credentials from config.json, keeping the URL (used by `logout` and `init --logout`).
+    state.json (the working context) is not touched. A file that cannot be read or written raises
+    file_error, so a caller never reports a sign-out that did not happen."""
     path = config_file()
-    data = load_json(path, {})
-    save_json(path, {k: v for k, v in data.items() if k not in CREDENTIAL_KEYS}, private=True)
+    try:
+        data = load_json(path, {})
+        save_json(path, {k: v for k, v in data.items() if k not in CREDENTIAL_KEYS}, private=True)
+    except OSError as e:
+        raise BBError("file_error", f"Could not update {path}: {e.strerror or e}. The saved credentials were "
+                                    "not removed.") from None
     return path
 
 

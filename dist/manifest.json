@@ -3,7 +3,7 @@
   "files": [
     {
       "path": "skill/SKILL.md",
-      "sha256": "22ff0ab87a56e4cc58187e244084f6c41add78981e3c31d257495e06b9404318",
+      "sha256": "91b04a31450691bbe5304b1b20096f44790261bc1764e34059bc2d942d23b8d1",
       "mode": "644"
     },
     {
@@ -18,7 +18,7 @@
     },
     {
       "path": "skill/scripts/bb.py",
-      "sha256": "dec176ea1830ba2502c69a2cb6b47f1be3a0fe73ed3bf7e098a9859a26acb7f3",
+      "sha256": "a812e83b051355dd91782e60eeecc67edec37356e553f3f110aa5b3f21f144bc",
       "mode": "755"
     },
     {
@@ -33,7 +33,7 @@
     },
     {
       "path": "skill/scripts/bbclient/config.py",
-      "sha256": "e656d6027e276a340f50e6999a1f355cdbd4693a19c2a08d015455a1038a08b1",
+      "sha256": "f655fde501341d89627b993cbd55d9ac19ab6b34dbaeaca057cd9fbcb0b28b4a",
       "mode": "644"
     },
     {
@@ -43,12 +43,12 @@
     },
     {
       "path": "skill/scripts/bbclient/errors.py",
-      "sha256": "6fdf6ce255c584b947fd9f02a8619f2c259231fd72418313c6fb3a4f2740649a",
+      "sha256": "ad9c635c04bad7ccf97c72213a8dba846bccb5e685904a50636bbc5289bb3e61",
       "mode": "644"
     },
     {
       "path": "skill/scripts/bbclient/render.py",
-      "sha256": "a1456c338ead605d8814536ee0467e464fd07b3e3e1be57516ac7eacf8c0079e",
+      "sha256": "6ad9e13b0c7a1ebc9b2b5d48ae5f641deb11d5cc0b5406a345e356193ba279e0",
       "mode": "644"
     },
     {
@@ -63,7 +63,7 @@
     },
     {
       "path": "skill/scripts/bbclient/ui.py",
-      "sha256": "09119edd817a9d1fd97763f979665f27ba7a297f10fc7ee36e659aad34bd64ca",
+      "sha256": "84605e49d28a2eb3106964df92b8a64f873262636a9902c087209b690394f4e6",
       "mode": "644"
     },
     {
@@ -83,7 +83,7 @@
     },
     {
       "path": "adapters/claude-code/bb-init.md",
-      "sha256": "6d51f99d8274286c1648522539b4c82b0b24ff92861c15f8f79c97929d3333ed",
+      "sha256": "14c4f662dc3227ac6d7935e1eacfc9d96dcd751d9e046800ab39d8793c8caac8",
       "mode": "644"
     },
     {
@@ -128,7 +128,7 @@
     },
     {
       "path": "adapters/claude-code/bb.md",
-      "sha256": "21d69773e00b709bf06bebe42e0488f5dab276b4f83acf4dbd3e715c3203a2e4",
+      "sha256": "2cf164bb661623a545fdc671a919f52ad5ca88050e7fd15ee91cbe3359e65abb",
       "mode": "644"
     },
     {
@@ -148,7 +148,7 @@
     },
     {
       "path": "adapters/opencode/bb-init.md",
-      "sha256": "6d51f99d8274286c1648522539b4c82b0b24ff92861c15f8f79c97929d3333ed",
+      "sha256": "acfcd23f1c81fda432c05ffc697f000c12de072281920abdab56ce19bf424584",
       "mode": "644"
     },
     {

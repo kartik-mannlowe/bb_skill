@@ -492,6 +492,24 @@ def connection(data: dict, view_: dict) -> str:
     return out
 
 
+def signed_out(d: dict) -> str:
+    """`bb.py init --logout --format table`, the /bb init --logout result. Says plainly what happened on the
+    server: a CLI credential is revoked there; an account's own key pair is only removed locally."""
+    if d.get("already_signed_out"):
+        return ("### Brewboard\n\nAlready signed out: no Brewboard credentials are saved on this computer.\n\n"
+                "Run `/bb init` to sign in.\n")
+    out = ["### Brewboard", "", "✓ Signed out successfully.", "",
+           "Saved authentication credentials removed from this computer. The server address and your selected "
+           "project, task and tickets are kept."]
+    if d.get("revoked"):
+        out += ["", f"The Brewboard server revoked this CLI's credential ({cell(d['revoked'])})."]
+    elif d.get("note"):
+        out += ["", cell(d["note"])]
+    if d.get("warning"):
+        out += ["", f"**Note:** {cell(d['warning'])}"]
+    return "\n".join(out + ["", "Run `/bb init` to sign in again."]) + "\n"
+
+
 # ---------------------------------------------------------------- results of writes
 
 def _warnings(items) -> str:

@@ -81,6 +81,10 @@ def make_api(cfg: dict | None = None) -> BrewboardAPI:
 # =============================================================== identity + context
 
 def cmd_init(a) -> None:
+    if a.logout:
+        return init_logout(a)
+    if a.format == "table":
+        raise BBError("bad_input", "--format table is only for `init --logout`; sign in from a terminal")
     cfg = config.load_config(required=False)
     interactive = sys.stdin.isatty()
     if interactive and sys.stdout.isatty() and wants_text(a):
@@ -164,9 +168,11 @@ def cmd_init(a) -> None:
     emit_account(a, "init", out)
 
 
-def cmd_logout(a) -> None:
-    """Revoke this CLI's credential on the server, then remove it from config.json."""
-    cfg = config.load_config()
+def sign_out(cfg: dict) -> dict:
+    """The one sign-out, used by `logout` and `init --logout`: revoke this CLI's own credential on the server
+    when it is one (an account's key pair is only removed locally), then remove the credential keys from
+    config.json. The URL and state.json (selected project / task / tickets) stay. Any failure raises, so
+    nothing reports a sign-out that did not happen."""
     out = {"credential": cfg.get("credential")}
     if cfg.get("auth_source"):
         try:
@@ -181,7 +187,29 @@ def cmd_logout(a) -> None:
     if any(src == "env" for k, src in (cfg.get("_source") or {}).items() if k != "url"):
         out["warning"] = "BB_API_KEY / BB_API_SECRET are set in the environment; unset them too."
     out["config_file"] = str(config.clear_credentials())
-    emit_account(a, "logout", out)
+    return out
+
+
+def cmd_logout(a) -> None:
+    """Revoke this CLI's credential on the server, then remove it from config.json."""
+    emit_account(a, "logout", sign_out(config.load_config()))
+
+
+def init_logout(a) -> None:
+    """`init --logout` (/bb init --logout): sign out through sign_out(). Unlike `logout`, it is fine to run when
+    already signed out. It never signs in and sends nothing else to the server."""
+    clash = [f"--{k}" for k in ("url", "key", "secret", "user") if getattr(a, k)] + (["--login"] if a.login else [])
+    if clash:
+        raise BBError("bad_input", f"--logout cannot be combined with {', '.join(clash)}")
+    cfg = config.load_config(required=False)
+    if cfg.get("api_key") or cfg.get("api_secret"):
+        out = {"signed_out": True, **sign_out(cfg)}
+    else:
+        out = {"signed_out": True, "already_signed_out": True, "config_file": str(config.config_file())}
+    if a.format == "table":
+        sys.stdout.write(render.signed_out(out))
+    else:
+        emit_account(a, "logout", out)
 
 
 def cmd_credentials(a) -> None:
@@ -480,13 +508,16 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--no-prompt", action="store_true", help="table without the selection prompt line")
 
     s = add("init", cmd_init, "Save the Brewboard URL + API key/secret (prompts if omitted) and verify the login",
-            fmt="text")
+            fmt="text", extra_formats=("table",))
     s.add_argument("--url")
     s.add_argument("--key")
     s.add_argument("--secret")
     s.add_argument("--login", action="store_true",
                    help="sign in with email + password (prompted) to obtain API keys; rotates the secret")
     s.add_argument("--user", help="login email for --login")
+    s.add_argument("--logout", action="store_true",
+                   help="sign out instead: revoke this CLI's own credential on the server (if it is one) and remove "
+                        "the saved credentials; keeps the server URL and the selected project / task / tickets")
 
     add("whoami", cmd_whoami, "Show the logged-in user, roles and saved context", fmt="text")
 

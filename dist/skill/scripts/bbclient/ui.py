@@ -212,6 +212,8 @@ def account_text(kind: str, out: dict, style: Style) -> str:
     """What a person sees for init / auth-check / whoami / logout on a terminal (JSON otherwise)."""
     lines = []
     if kind == "logout":
+        if out.get("already_signed_out"):
+            return style.status("info", "Already signed out: no Brewboard credentials are saved on this computer.") + "\n"
         revoked = out.get("revoked")
         lines.append(style.status("ok", "Signed out of Brewboard on this computer."))
         lines += style.fields([("Revoked", revoked and ", ".join(revoked)), ("Config", out.get("config_file"))])
@@ -270,6 +272,7 @@ TITLES = {
     "bad_input": "Invalid input",
     "possible_duplicate": "Possible duplicate",
     "no_project": "No project selected",
+    "file_error": "Could not update the saved sign-in",
 }
 
 

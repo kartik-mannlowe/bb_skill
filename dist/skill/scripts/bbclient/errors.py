@@ -22,6 +22,7 @@ CODES = {
     "bad_input": "invalid arguments; nothing was sent",
     "possible_duplicate": "an identical record already exists; nothing was created",
     "no_project": "no project selected and none given",
+    "file_error": "a local Brewboard file (~/.bb/config.json) could not be read or written",
 }
 
 
