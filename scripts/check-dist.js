@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-// Maintainer tool (not shipped): verifies dist/ against dist/manifest.json. Read-only; never writes.
-//
-//   npm run check-dist     exit 1 if any packaged file is missing, changed, has the wrong executable bit,
-//                          is not a regular file, or if dist/ holds anything the manifest does not list
+// Maintainer tool (not shipped): verifies dist/, read-only (it never writes). Exit 1 when
+//   - a packaged file is missing, changed, has the wrong executable bit or is not a regular file,
+//   - dist/ holds anything the manifest does not list (or anything that must never be packaged),
+//   - a generated file is stale: the OpenCode commands or the manifest differ from what
+//     `npm run build` (scripts/build-dist.js) makes from the authored files.
 "use strict";
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { manifestFor, expectedOpencode } = require("./build-dist");
 
 const DIST = path.join(__dirname, "..", "dist");
 const sha = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
@@ -55,14 +57,39 @@ function verifyDist(dist = DIST) {
   return problems;
 }
 
+// Every way the generated files differ from what `npm run build` would write. [] means up to date.
+function verifyGenerated(dist = DIST) {
+  const problems = [];
+  const outDir = path.join(dist, "adapters", "opencode");
+  let want;
+  try { want = expectedOpencode(dist); } catch (e) { return [e.message]; }
+  for (const [f, text] of Object.entries(want)) {
+    let have = null;
+    try { have = fs.readFileSync(path.join(outDir, f), "utf8"); } catch { /* reported below */ }
+    if (have === null) problems.push(`adapters/opencode/${f} is missing (generated from adapters/claude-code/${f})`);
+    else if (have !== text) problems.push(`adapters/opencode/${f} is stale (generated from adapters/claude-code/${f})`);
+  }
+  const extra = fs.existsSync(outDir) ? fs.readdirSync(outDir).filter((f) => !(f in want)) : [];
+  extra.forEach((f) => problems.push(`adapters/opencode/${f} has no Claude Code source`));
+  let fresh;
+  try { fresh = manifestFor(dist); } catch (e) { return [...problems, e.message]; }
+  let current = null;
+  try { current = JSON.parse(fs.readFileSync(path.join(dist, "manifest.json"), "utf8")); } catch { /* verifyDist reports it */ }
+  if (current && JSON.stringify(current) !== JSON.stringify(fresh)) problems.push("manifest.json is out of date");
+  return problems;
+}
+
 function main({ dist = DIST, log = console.log, error = console.error } = {}) {
-  const problems = verifyDist(dist);
-  if (problems.length) { error(`dist/ does not match dist/manifest.json:\n  ${problems.join("\n  ")}`); return 1; }
-  log(`dist/ matches dist/manifest.json (${JSON.parse(fs.readFileSync(path.join(dist, "manifest.json"), "utf8")).files.length} files).`);
+  const problems = [...verifyDist(dist), ...verifyGenerated(dist)];
+  if (problems.length) {
+    error(`dist/ is not consistent (run \`npm run build\` after editing authored files):\n  ${[...new Set(problems)].join("\n  ")}`);
+    return 1;
+  }
+  log(`dist/ matches dist/manifest.json and the generated files are current (${JSON.parse(fs.readFileSync(path.join(dist, "manifest.json"), "utf8")).files.length} files).`);
   return 0;
 }
 
 if (require.main === module) {
   try { process.exit(main()); } catch (e) { console.error(e.message); process.exit(1); }
 }
-module.exports = { verifyDist, main };
+module.exports = { verifyDist, verifyGenerated, main };

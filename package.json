@@ -26,6 +26,7 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.js",
+    "build": "node scripts/build-dist.js",
     "check-dist": "node scripts/check-dist.js",
     "pack:check": "node scripts/check-pack.js"
   },

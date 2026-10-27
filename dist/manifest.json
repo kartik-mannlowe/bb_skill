@@ -1,5 +1,5 @@
 {
-  "source": "brewboard_skill/files/bb-connector (canonical connector)",
+  "source": "this repository: scripts/build-dist.js",
   "files": [
     {
       "path": "skill/SKILL.md",
