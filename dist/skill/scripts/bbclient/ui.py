@@ -209,8 +209,11 @@ def _credential(cred: dict) -> str | None:
 
 
 def account_text(kind: str, out: dict, style: Style) -> str:
-    """What a person sees for init / auth-check / whoami / logout on a terminal (JSON otherwise)."""
+    """What a person sees for init / auth-check / whoami / logout / init --login --launch on a terminal
+    (JSON otherwise)."""
     lines = []
+    if kind == "launch":
+        return launch_text(out, style)
     if kind == "logout":
         if out.get("already_signed_out"):
             return style.status("info", "Already signed out: no Brewboard credentials are saved on this computer.") + "\n"
@@ -250,6 +253,22 @@ def account_text(kind: str, out: dict, style: Style) -> str:
     return "\n".join(lines) + "\n"
 
 
+def launch_text(out: dict, style: Style) -> str:
+    """`init --login --launch` in a terminal: where the sign-in was opened, or that one is already open."""
+    status, where = out.get("status"), f"{out.get('terminal')} {out.get('mode')}"
+    if status == "already_running":
+        return style.status("info", "A Brewboard sign-in is already open in another terminal. Finish it there, "
+                                    "then run /bb init.") + "\n"
+    if status == "started":
+        lines = [style.status("ok", f"Brewboard sign-in opened in a new {where}. Enter your email and password there.")]
+    else:
+        lines = [style.status("warn", f"Asked {out.get('terminal')} to open a new {out.get('mode')} for the sign-in; "
+                                      "it has not started yet."),
+                 f"  If none appears, run: {out.get('command')}"]
+    lines.append(f"  {style.paint(style.symbol('next'), 'next')} When it says you are signed in, run /bb init.")
+    return "\n".join(lines) + "\n"
+
+
 # ---------------------------------------------------------------- errors
 
 TITLES = {
@@ -273,6 +292,8 @@ TITLES = {
     "possible_duplicate": "Possible duplicate",
     "no_project": "No project selected",
     "file_error": "Could not update the saved sign-in",
+    "terminal_unavailable": "Cannot open a terminal",
+    "sign_in_running": "Sign-in already running",
 }
 
 

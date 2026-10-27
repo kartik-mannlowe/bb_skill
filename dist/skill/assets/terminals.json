@@ -1,0 +1,23 @@
+{
+  "about": "Terminals Brewboard can open its interactive sign-in in, shared by the installer (lib/terminal.js) and bb.py (scripts/bbclient/terminal.py). args is an argument template run without a shell: {title} is replaced inside an element, and the {command} element is replaced by the command's arguments, one element each. env lists variables a terminal sets in its own sessions, used to prefer the terminal the user is already in. Tab terminals come first, then window-only ones; x-terminal-emulator (Debian's -T/-e convention) is the last resort.",
+  "terminals": [
+    { "name": "ptyxis", "bin": "ptyxis", "mode": "tab", "env": [],
+      "args": ["--tab", "-T", "{title}", "--", "{command}"] },
+    { "name": "gnome-terminal", "bin": "gnome-terminal", "mode": "tab", "env": ["GNOME_TERMINAL_SCREEN", "GNOME_TERMINAL_SERVICE"],
+      "args": ["--tab", "--title={title}", "--", "{command}"] },
+    { "name": "konsole", "bin": "konsole", "mode": "tab", "env": ["KONSOLE_VERSION"],
+      "args": ["--new-tab", "-p", "tabtitle={title}", "-e", "{command}"] },
+    { "name": "xfce4-terminal", "bin": "xfce4-terminal", "mode": "tab", "env": [],
+      "args": ["--tab", "--title={title}", "-x", "{command}"] },
+    { "name": "kitty", "bin": "kitty", "mode": "window", "env": ["KITTY_WINDOW_ID"],
+      "args": ["--title", "{title}", "{command}"] },
+    { "name": "alacritty", "bin": "alacritty", "mode": "window", "env": ["ALACRITTY_WINDOW_ID", "ALACRITTY_SOCKET"],
+      "args": ["--title", "{title}", "-e", "{command}"] },
+    { "name": "foot", "bin": "foot", "mode": "window", "env": [],
+      "args": ["--title={title}", "{command}"] },
+    { "name": "xterm", "bin": "xterm", "mode": "window", "env": ["XTERM_VERSION"],
+      "args": ["-T", "{title}", "-e", "{command}"] },
+    { "name": "x-terminal-emulator", "bin": "x-terminal-emulator", "mode": "window", "env": [],
+      "args": ["-T", "{title}", "-e", "{command}"] }
+  ]
+}

@@ -467,6 +467,9 @@ def _credential_text(cred: dict) -> str | None:
     return " · ".join(parts) or None
 
 
+SIGN_IN = ("not_configured", "credentials_rejected")
+
+
 def connection(data: dict, view_: dict) -> str:
     """`bb.py auth-check --format table`, the /bb init result. Like /bb status, the first data row (Name)
     doubles as the table header: a key/value summary never gets an empty header row."""
@@ -474,10 +477,12 @@ def connection(data: dict, view_: dict) -> str:
     if status != "ok":
         title = "Not signed in" if status == "not_configured" else ui.TITLES.get(status, "Sign-in problem")
         message = data.get("message") or "No Brewboard sign-in is saved on this computer."
-        steps = list(data.get("next_steps") or []) or [s for s in (ui.hint(status),) if s]
+        steps = list(data.get("next_steps") or []) or [s for s in (ui.hint(status),) if s and status not in SIGN_IN]
         out = ["### Brewboard connection", f"{title} · status `{status}`", "", cell(message)]
         if steps:
             out += [""] + [f"- {cell(s)}" for s in steps]
+        if status in SIGN_IN:  # in the agent, signing in goes through /bb init --login (a new terminal)
+            out += ["", "Run `/bb init --login` to sign in: it opens the sign-in in a new terminal."]
         return "\n".join(out) + "\n"
     user, name = data.get("user"), data.get("full_name")
     first = ("Name", name) if name and name != user else ("User ID", user)
@@ -490,6 +495,22 @@ def connection(data: dict, view_: dict) -> str:
     if not data.get("roles"):
         out += "\n**Note:** this account has no Brewboard role, so Brewboard will refuse most requests.\n"
     return out
+
+
+def login_launch(d: dict) -> str:
+    """`bb.py init --login --launch --format table`, the /bb init --login result. Never claims a sign-in that
+    has not started, and never a successful one: the agent checks that with /bb init afterwards."""
+    where = f"{cell(d.get('terminal'))} {cell(d.get('mode'))}"
+    check = "When it says you are signed in, run `/bb init` to check the connection."
+    if d.get("status") == "already_running":
+        return ("### Brewboard sign-in\n\nA Brewboard sign-in is already open in another terminal. Finish it "
+                f"there; nothing new was opened.\n\n{check}\n")
+    if d.get("status") == "started":
+        return (f"### Brewboard sign-in\n\nOpened in a new {where}.\n\nEnter your Brewboard email and password "
+                f"there, not in this chat. {check}\n")
+    return (f"### Brewboard sign-in\n\nAsked {cell(d.get('terminal'))} to open a new {cell(d.get('mode'))} for the "
+            f"sign-in, but it has not started yet.\n\nIf none appears, run this in your own terminal: "
+            f"{code(d.get('command'))}\n\n{check}\n")
 
 
 def signed_out(d: dict) -> str:

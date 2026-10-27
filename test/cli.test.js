@@ -70,7 +70,7 @@ test("Yes opens a tab with a secret-free command line and reports the tab's resu
     let launched;
     const deps = {
       noGuiReason: () => null,
-      findTerminal: () => ({ name: "ptyxis", bin: "ptyxis", args: (t, c) => ["--tab", "-T", t, "--", ...c] }),
+      findTerminal: () => ({ name: "ptyxis", bin: "ptyxis", mode: "tab", args: (t, c) => ["--tab", "-T", t, "--", ...c] }),
       launchTab: async (term, title, command) => {
         launched = term.args(title, command);
         const file = command[command.indexOf("--status-file") + 1];
@@ -96,7 +96,7 @@ test("when the terminal cannot open a tab, the wizard runs in this terminal", as
   const srv = await mockServer();
   try {
     const tty = fakeTty();
-    const deps = { noGuiReason: () => null, findTerminal: () => ({ name: "ptyxis" }),
+    const deps = { noGuiReason: () => null, findTerminal: () => ({ name: "ptyxis", mode: "tab" }),
                    launchTab: async () => ({ ok: false, error: "ptyxis not found" }) };
     const run = main(["--login"], { env: h.env, stdin: tty.input, stdout: tty.output, stderr: sink(), deps });
     await drive(tty, [{ waitFor: "server URL:", send: [srv.url, KEY.enter] },

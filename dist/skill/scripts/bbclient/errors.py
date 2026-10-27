@@ -23,6 +23,8 @@ CODES = {
     "possible_duplicate": "an identical record already exists; nothing was created",
     "no_project": "no project selected and none given",
     "file_error": "a local Brewboard file (~/.bb/config.json) could not be read or written",
+    "terminal_unavailable": "no terminal could be opened for the interactive sign-in; nothing was started",
+    "sign_in_running": "another Brewboard sign-in is already running",
 }
 
 

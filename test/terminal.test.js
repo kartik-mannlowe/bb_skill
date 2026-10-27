@@ -57,3 +57,42 @@ test("launch succeeds only when the terminal accepts the request", async () => {
   const lingers = fakeSpawn(() => {});
   assert.deepStrictEqual(await terminal.launchTab(term, "t", ["node"], { spawnFn: lingers, settleMs: 50 }), { ok: true });
 });
+
+test("the installer and bb.py read one terminal table (dist/skill/assets/terminals.json)", () => {
+  const fs = require("fs");
+  const path = require("path");
+  assert.strictEqual(terminal.TABLE_FILE, path.join(__dirname, "..", "dist", "skill", "assets", "terminals.json"));
+  const raw = JSON.parse(fs.readFileSync(terminal.TABLE_FILE, "utf8")).terminals;
+  assert.deepStrictEqual(terminal.TERMINALS.map((t) => [t.name, t.bin, t.mode]), raw.map((t) => [t.name, t.bin, t.mode]));
+  const py = fs.readFileSync(path.join(__dirname, "..", "dist", "skill", "scripts", "bbclient", "terminal.py"), "utf8");
+  assert.match(py, /parents\[2\] \/ "assets" \/ "terminals\.json"/);
+});
+
+test("without a tab terminal a window terminal is used; the terminal the user is in comes first", () => {
+  const same = (p) => p;
+  const xt = terminal.findTerminal({}, has("xterm"), same);
+  assert.deepStrictEqual([xt.name, xt.mode], ["xterm", "window"]);
+  assert.deepStrictEqual(xt.args("T", ["/a b/python3", "x"]), ["-T", "T", "-e", "/a b/python3", "x"]);
+  assert.strictEqual(terminal.findTerminal({ KONSOLE_VERSION: "1" }, has("ptyxis", "konsole"), same).name, "konsole");
+  const unknownDefault = terminal.findTerminal({}, has("x-terminal-emulator"), () => "/usr/bin/some-terminal");
+  assert.deepStrictEqual([unknownDefault.name, unknownDefault.mode], ["x-terminal-emulator", "window"]);
+});
+
+test("a pending lock from bb.py (init --login --launch) holds for a minute, then is stale", () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const lock = require("../lib/lock");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bbnpx-lock-"));
+  const file = path.join(dir, "login.lock");
+  try {
+    fs.writeFileSync(file, JSON.stringify({ pid: null, pending: true, started: new Date().toISOString() }));
+    assert.strictEqual(lock.inspect(file).active, true);
+    assert.strictEqual(lock.acquire(file).acquired, false);
+    fs.writeFileSync(file, JSON.stringify({ pid: null, pending: true, started: new Date(Date.now() - 61000).toISOString() }));
+    assert.strictEqual(lock.inspect(file).active, false);
+    const got = lock.acquire(file);
+    assert.strictEqual(got.acquired, true);
+    got.release();
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});

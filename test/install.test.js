@@ -130,7 +130,21 @@ test("a failing agent does not stop the others (partial installation)", { skip: 
   } finally { h.cleanup(); }
 });
 
+test("the installed skill has everything /bb init --login needs to open a terminal", () => {
+  const h = tmpHome();
+  try {
+    install(h.paths, { agents: [], version: "t" });
+    for (const rel of ["assets/terminals.json", "scripts/bbclient/terminal.py", "scripts/bbclient/signin.py"]) {
+      assert.ok(fs.existsSync(path.join(h.paths.skillDir, rel)), rel);
+    }
+    const { spawnSync } = require("child_process");
+    const r = spawnSync("python3", ["-B", h.paths.bbPy, "init", "--help"], { encoding: "utf8", env: { ...h.env, BB_HOME: h.paths.bbHome } });
+    assert.strictEqual(r.status, 0, r.stderr);
+    assert.match(r.stdout, /--launch/);
+  } finally { h.cleanup(); }
+});
+
 test("packaged files are checked against the manifest before installing", () => {
   const n = readManifest(require("../lib/paths").resolvePaths(process.env).distDir).files.length;
-  assert.strictEqual(n, 40);
+  assert.strictEqual(n, 43);
 });

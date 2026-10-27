@@ -34,7 +34,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from bbclient import config, diagnose, render, service, ui  # noqa: E402
+from bbclient import config, diagnose, render, service, signin, ui  # noqa: E402
 from bbclient.api import BrewboardAPI  # noqa: E402
 from bbclient.errors import BBError, unsupported  # noqa: E402
 from bbclient.transport import Transport  # noqa: E402
@@ -83,8 +83,30 @@ def make_api(cfg: dict | None = None) -> BrewboardAPI:
 def cmd_init(a) -> None:
     if a.logout:
         return init_logout(a)
+    if a.launch:
+        return init_launch(a)
     if a.format == "table":
-        raise BBError("bad_input", "--format table is only for `init --logout`; sign in from a terminal")
+        raise BBError("bad_input", "--format table is only for `init --logout` and `init --login --launch`; "
+                                   "sign in from a terminal")
+    if a.login and not sys.stdin.isatty():
+        raise BBError("bad_input", "--login prompts for your password, so it needs a terminal (passwords are never "
+                                   "accepted as arguments). In a coding agent use /bb init --login: it runs "
+                                   "`bb.py init --login --launch`, which opens the sign-in in a new terminal.")
+    if not a.login:
+        return init_session(a)
+    got = signin.acquire()
+    if not got["acquired"]:
+        held = got.get("holder") or {}
+        raise BBError("sign_in_running", "Another Brewboard sign-in is already running"
+                      + (f" (pid {held['pid']})" if held.get("pid") else "") + ". Finish or close it first.")
+    try:
+        init_session(a)
+    finally:
+        signin.release()
+
+
+def init_session(a) -> None:
+    """The sign-in itself: prompts (in a terminal), verifies with Brewboard, then saves config.json."""
     cfg = config.load_config(required=False)
     interactive = sys.stdin.isatty()
     if interactive and sys.stdout.isatty() and wants_text(a):
@@ -110,9 +132,6 @@ def cmd_init(a) -> None:
 
     notes, issued = [], {}
     if a.login:
-        if not interactive:
-            raise BBError("bad_input", "--login prompts for your password, so run it in a terminal "
-                                       "(passwords are never accepted as arguments)")
         guest = BrewboardAPI(Transport(url, timeout=config.timeout()))
         per_client = service.supports_client_credentials(guest)
         if not per_client:
@@ -210,6 +229,22 @@ def init_logout(a) -> None:
         sys.stdout.write(render.signed_out(out))
     else:
         emit_account(a, "logout", out)
+
+
+def init_launch(a) -> None:
+    """`init --login --launch` (/bb init --login): open the interactive sign-in in a new terminal tab or window
+    and return at once. For coding agents, whose shell has no terminal for the hidden password prompt."""
+    if not a.login:
+        raise BBError("bad_input", "--launch opens `init --login` in a new terminal; use it together with --login")
+    clash = [f"--{k}" for k in ("url", "key", "secret", "user") if getattr(a, k)]
+    if clash:
+        raise BBError("bad_input", f"--launch cannot be combined with {', '.join(clash)}; the new terminal asks "
+                                   "for everything it needs")
+    out = signin.launch()
+    if a.format == "table":
+        sys.stdout.write(render.login_launch(out))
+    else:
+        emit_account(a, "launch", out)
 
 
 def cmd_credentials(a) -> None:
@@ -518,6 +553,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--logout", action="store_true",
                    help="sign out instead: revoke this CLI's own credential on the server (if it is one) and remove "
                         "the saved credentials; keeps the server URL and the selected project / task / tickets")
+    s.add_argument("--launch", action="store_true",
+                   help="with --login: open the sign-in in a new terminal tab or window (Linux desktops) and return "
+                        "at once; for coding agents, whose shell cannot prompt for a hidden password")
+    s.add_argument("--pause", action="store_true", help=argparse.SUPPRESS)  # the launched terminal: wait for Enter
 
     add("whoami", cmd_whoami, "Show the logged-in user, roles and saved context", fmt="text")
 
@@ -697,6 +736,14 @@ def main(argv=None) -> int:
         except (AttributeError, ValueError):
             pass
     args = build_parser().parse_args(argv)
+    try:
+        return run(args)
+    finally:
+        if getattr(args, "pause", False):  # the terminal `init --login --launch` opened: keep the result readable
+            signin.pause()
+
+
+def run(args) -> int:
     try:
         args.fn(args)
     except BBError as e:

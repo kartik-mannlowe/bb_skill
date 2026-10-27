@@ -1,6 +1,6 @@
 ---
 description: Brewboard - projects, tasks, tickets, cycles, time, meetings and search
-argument-hint: "[init [--logout] | list_projects | list_tasks [status] [limit] | list_tickets [status] [limit] | cycles | log_time ... | timesheets | create_mom | moms | show <type> <ID> | find <query> | status]"
+argument-hint: "[init [--login | --logout] | list_projects | list_tasks [status] [limit] | list_tickets [status] [limit] | cycles | log_time ... | timesheets | create_mom | moms | show <type> <ID> | find <query> | status]"
 ---
 Run the /bb Brewboard workflow. Read ~/.bb/skill/SKILL.md and follow it.
 

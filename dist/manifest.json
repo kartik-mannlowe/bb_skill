@@ -3,12 +3,17 @@
   "files": [
     {
       "path": "skill/SKILL.md",
-      "sha256": "91b04a31450691bbe5304b1b20096f44790261bc1764e34059bc2d942d23b8d1",
+      "sha256": "5773af09535565e675908d1199f7f5e3fe52f60631a58774bf1eebb0aaf4a6a4",
       "mode": "644"
     },
     {
       "path": "skill/assets/banner.txt",
       "sha256": "1d5f6375e02070c5b104e0d9957a907b352c16b18534c18d3ad18ed3e4e71e9a",
+      "mode": "644"
+    },
+    {
+      "path": "skill/assets/terminals.json",
+      "sha256": "7f5285685bdac4638d8937bfee1be01673713844a782495f18a6ca690806fc15",
       "mode": "644"
     },
     {
@@ -18,7 +23,7 @@
     },
     {
       "path": "skill/scripts/bb.py",
-      "sha256": "a812e83b051355dd91782e60eeecc67edec37356e553f3f110aa5b3f21f144bc",
+      "sha256": "c8da9f1f932ce17a83da9e8a854fb1c4fabe943071c1a42629c08df90ee47e02",
       "mode": "755"
     },
     {
@@ -43,17 +48,27 @@
     },
     {
       "path": "skill/scripts/bbclient/errors.py",
-      "sha256": "ad9c635c04bad7ccf97c72213a8dba846bccb5e685904a50636bbc5289bb3e61",
+      "sha256": "d544486de5a459220a108bac6ec1ee77c76d9c7b0d59663cce863a09177f84df",
       "mode": "644"
     },
     {
       "path": "skill/scripts/bbclient/render.py",
-      "sha256": "6ad9e13b0c7a1ebc9b2b5d48ae5f641deb11d5cc0b5406a345e356193ba279e0",
+      "sha256": "d70c41c9fe5b7bb7ac98740c448b2dd16d82eb036c981959b78a4f7b13c5e48f",
       "mode": "644"
     },
     {
       "path": "skill/scripts/bbclient/service.py",
       "sha256": "1e01be973e3c3a3b5e3a82ccc81a867e5e933711cf62fd4eb89e8c6fae67d37e",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bbclient/signin.py",
+      "sha256": "965df1d96de6ab430fdcf155a449dd6ab403c4d68423bdada301125f5f79223b",
+      "mode": "644"
+    },
+    {
+      "path": "skill/scripts/bbclient/terminal.py",
+      "sha256": "5e0248d00862bc9c27279f969eea156dbf053233c886572dd5ca8f0b3fd32009",
       "mode": "644"
     },
     {
@@ -63,7 +78,7 @@
     },
     {
       "path": "skill/scripts/bbclient/ui.py",
-      "sha256": "84605e49d28a2eb3106964df92b8a64f873262636a9902c087209b690394f4e6",
+      "sha256": "ef5daeb699f108be8db928cdf33f9d780859f19a82638767152c140dd984de49",
       "mode": "644"
     },
     {
@@ -83,7 +98,7 @@
     },
     {
       "path": "adapters/claude-code/bb-init.md",
-      "sha256": "14c4f662dc3227ac6d7935e1eacfc9d96dcd751d9e046800ab39d8793c8caac8",
+      "sha256": "b6b0918ddb21d78cf7121e1c66776e3f408f51130e0356ce9a9ab5f56a025997",
       "mode": "644"
     },
     {
@@ -128,7 +143,7 @@
     },
     {
       "path": "adapters/claude-code/bb.md",
-      "sha256": "2cf164bb661623a545fdc671a919f52ad5ca88050e7fd15ee91cbe3359e65abb",
+      "sha256": "1f293643874e5a17eb1936034ce614cdb7e04c4ed46131dc27720972d819f0b3",
       "mode": "644"
     },
     {
@@ -148,7 +163,7 @@
     },
     {
       "path": "adapters/opencode/bb-init.md",
-      "sha256": "acfcd23f1c81fda432c05ffc697f000c12de072281920abdab56ce19bf424584",
+      "sha256": "a00c198620bfa65cb6e8c6629e439fc1b15691285f4635a5ebb8627d2b9c753d",
       "mode": "644"
     },
     {
@@ -198,7 +213,7 @@
     },
     {
       "path": "adapters/agent-skill/bb.md",
-      "sha256": "a0c746bd2211853683567a940496e326e757771c29038cad248df8428587055f",
+      "sha256": "1008cda80e064f9c46d3ddf81ee9a3239b3b88f01597d162bbffd1c2a199a308",
       "mode": "644"
     }
   ]
