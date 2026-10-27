@@ -21,7 +21,7 @@ test("npm pack contains only the allowlist and nothing secret", () => {
   assert.strictEqual(r.status, 0, r.stderr);
   const files = JSON.parse(r.stdout)[0].files.map((f) => f.path);
   for (const f of files) {
-    assert.match(f, /^(bin\/|lib\/|dist\/|package\.json$)/, f);
+    assert.match(f, /^(bin\/|lib\/|dist\/|package\.json$|README\.md$)/, f);
     assert.doesNotMatch(f, /\.env|config\.json|state\.json|db\.json|backup|__pycache__|\.venv|mock|test/i, f);
   }
   assert.ok(files.includes("dist/skill/scripts/bb.py"));
