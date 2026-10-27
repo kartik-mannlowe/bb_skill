@@ -15,7 +15,7 @@ Supported agents: **Claude Code**, **Codex CLI**, **OpenCode** and **Antigravity
 - **Search:** find tasks, tickets, minutes, time logs, projects and cycles.
 - **Changes after confirmation:** update task and ticket fields, your own draft time logs, and minutes. Every write is shown to you first and runs only after you confirm.
 - **Saved working context:** the selected project, task and tickets are remembered between sessions.
-- **Sign-in and connection checks:** `/bb init` verifies the server, the credential and your Brewboard roles. `/bb init --logout` signs you out.
+- **Sign-in and connection checks:** `/bb init` verifies the server, the credential and your Brewboard roles. `/bb init --login` opens the sign-in in a new terminal, and `/bb init --logout` signs you out.
 - **Installer:** a read-only system check, install and update for every detected agent, guided sign-in, recovery, and an uninstall that removes only what the installer added.
 
 The Brewboard API does not offer some operations: submitting or cancelling timesheets, time logs without a task, logging time for another employee, deleting tasks, tickets or time logs, and editing projects. The skill refuses these with `api_unsupported` before sending anything to the server.
@@ -49,10 +49,10 @@ To see the check without installing anything, add `--check`.
 
 Sign-in asks for your Brewboard server URL, your login ID and your password. The password is hidden as you type, and it is never saved.
 
-On a Linux desktop, sign-in opens in a new terminal tab. Otherwise, or with `--here`, it runs in the current terminal. To sign in again later:
+On a Linux desktop, sign-in opens in a new terminal tab or window. Otherwise, or with `--here`, it runs in the current terminal. To sign in again later, use `/bb init --login` from your coding agent (see [Signing in from your coding agent](#signing-in-from-your-coding-agent)), or the installer:
 
 ```sh
-npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --login          # new tab
+npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --login          # new terminal tab or window
 npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --login --here   # this terminal (SSH, no desktop)
 ```
 
@@ -68,6 +68,7 @@ The menu shows your saved sign-in and context, and offers every workflow (Projec
 
 ```text
 /bb init                    check the connection and who you are signed in as
+/bb init --login            sign in, in a new terminal tab or window
 /bb list_projects           pick the project to work on
 /bb list_tasks Open 10      open tasks of the selected project (default limit: 5)
 /bb list_tickets            tickets of the selected project
@@ -83,7 +84,7 @@ In **Codex**, write `$bb` instead of `/bb` (for example `$bb list_tasks`). Codex
 
 | Agent | How to use it | Tested with |
 |---|---|---|
-| Claude Code | `/bb`, `/bb <subcommand>`, plus shortcuts such as `/bb-list_tasks`, `/bb-log_time` and `/bb-init` | 2.1.296 |
+| Claude Code | `/bb`, `/bb <subcommand>`, plus shortcuts such as `/bb-list_tasks`, `/bb-log_time` and `/bb-init --login` | 2.1.296 |
 | Codex CLI | `$bb <subcommand>`, or ask about Brewboard in plain words | 0.162.1 |
 | OpenCode | `/bb`, `/bb <subcommand>`, the same `/bb-…` shortcuts, or plain words | 1.18.35 |
 | Antigravity CLI | `/bb <subcommand>`, or plain words | 1.3.1 |
@@ -97,6 +98,36 @@ The system check warns when an installed agent is older than the version it was 
 - **Where it is saved.** The credential and server URL are stored in `~/.bb/config.json` with mode `600`. Your password is never stored. The skill never asks for a password or secret in the agent chat, and never prints the config file there.
 - **Environment variables.** `BB_URL`, `BB_API_KEY` and `BB_API_SECRET`, if set, override the saved configuration.
 - **Redirects.** The client never follows HTTP redirects, because a redirect could send your credentials to another server. A redirecting address fails with `redirect_refused`.
+
+### Signing in from your coding agent
+
+Signing in asks for a hidden password, which needs a real terminal. A coding agent runs commands without one, so `/bb init --login` opens a terminal for you:
+
+1. Type `/bb init --login`. In Codex, type `$bb init --login`. In Claude Code and OpenCode, `/bb-init --login` works too.
+2. A new terminal tab or window opens and runs the Brewboard sign-in. Enter the server URL (press Enter to keep the saved one), your login ID and your password **in that terminal**. Never type them into the agent chat; the agent never asks for them.
+3. When the terminal says you are signed in, press Enter to close it, go back to the agent and run `/bb init` to check the connection.
+
+The agent reports only that the sign-in terminal opened. It does not report the sign-in result itself, so `/bb init` is how you confirm it. If a sign-in terminal is already open, running `/bb init --login` again opens nothing new.
+
+**Which terminal opens.** The terminal you are working in, if it can run a command in a new tab or window; otherwise your system's default terminal; otherwise the first supported terminal installed. Set `BB_TERMINAL` to one of the names below to choose one, or to `none` to never open a terminal.
+
+| Opens | `BB_TERMINAL` names | Verified |
+|---|---|---|
+| A new tab | `ptyxis` | Yes: Ptyxis on an Ubuntu desktop session (Wayland) |
+| A new tab | `gnome-terminal`, `konsole`, `xfce4-terminal` | No |
+| A new window | `kitty`, `alacritty`, `foot`, `xterm`, `x-terminal-emulator` (your system's default terminal) | No |
+
+Terminals that cannot start a command in a new tab from the command line, such as Warp, are not used; the sign-in opens in another supported terminal instead.
+
+**When no terminal can be opened** (over SSH, in a container, without a graphical session, on macOS, or with no supported terminal installed), `/bb init --login` explains why and shows the exact command to run in a terminal of your own, for example:
+
+```sh
+python3 ~/.bb/skill/scripts/bb.py init --login
+```
+
+Opening a terminal is implemented for Linux desktops only; on macOS you always get this manual command. Codex runs commands in a sandbox, which may prevent it from opening a terminal; this has not been tested, and you then get the manual command too.
+
+**What the new terminal receives.** Only the command that starts the sign-in, as an argument list with no shell involved. Passwords and API secrets are never put on a command line, and the `BB_URL`, `BB_API_KEY` and `BB_API_SECRET` overrides are removed from the new terminal's environment.
 
 ### Signing out
 
@@ -142,14 +173,16 @@ npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --check
 | `Cannot install: …` (missing Python, old Node.js, unwritable home or `~/.bb`) | Fix the item the check names, then run the installer again. Nothing was changed. |
 | An agent shows as "not detected" | Install the agent (its command must be on `PATH`) or run it once so its configuration folder exists, then run the installer again. |
 | "No coding agent configured" | The skill is installed but no agent was found. Add a supported agent and run the installer again. |
-| `not_configured` | You are not signed in. Run the installer with `--login`. |
-| `credentials_rejected` | The server no longer accepts the saved credential (expired or revoked). Sign in again with `--login`. |
+| `not_configured` | You are not signed in. Run `/bb init --login` in your agent, or the installer with `--login`. |
+| `credentials_rejected` | The server no longer accepts the saved credential (expired or revoked). Sign in again with `/bb init --login`. |
+| `terminal_unavailable` | `/bb init --login` could not open a terminal; the message says why. Run the command it shows in a terminal of your own. |
+| "A Brewboard sign-in is already open in another terminal" | Finish the sign-in in that terminal, then run `/bb init`. If you closed it, try again after a minute. |
 | `unreachable` | Check the server URL, your VPN, and that the Brewboard server is running. |
 | `not_brewboard` | The URL answers but is not a Brewboard backend. Sign in again with the right address. |
 | `redirect_refused` | The saved address redirects elsewhere. Sign in again with the address it redirects to. |
 | `forbidden` | Your Brewboard role or project membership does not allow the operation. Ask a project manager. |
 | `write_outcome_unknown` | A write was sent but no answer came back. Check your time logs or minutes before retrying. |
-| The sign-in tab cannot be opened | Use `--login --here` to sign in in the current terminal. |
+| The installer cannot open a sign-in tab | Use `--login --here` to sign in in the current terminal. |
 | "Another Brewboard sign-in is already running" | Finish or close the other sign-in first. |
 | "installed files do not match the package" | The installed files failed their integrity check. Run the installer again. |
 
