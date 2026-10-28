@@ -25,6 +25,9 @@ from .transport import strip_html
 OPEN_TASK = ["Open", "Working", "Pending Review", "Overdue"]
 CLOSED_TASK = {"Completed", "Cancelled"}
 OPEN_ISSUE = ["Open", "Replied", "On Hold"]
+# Custom-mode status field and get_project_status_meta list per doctype (helpers/project_helpers.py)
+STATUS_FIELD = {"Task": "custom_task_status", "Issue": "custom_issue_status"}
+STATUS_ROWS = {"Task": "task_statuses", "Issue": "issue_statuses"}
 PRIORITY_RANK = {"Urgent": 0, "High": 1, "Medium": 2, "Low": 3}
 DOCSTATUS = {0: "Draft", 1: "Submitted", 2: "Cancelled"}
 MOM = "Minutes of Meeting"
@@ -253,11 +256,16 @@ def is_overdue(row: dict) -> bool:
     return bool(due and str(due) < date.today().isoformat() and row.get("status") not in CLOSED_TASK)
 
 
-def norm_task(t: dict, selected: str | None = None) -> dict:
+def _custom_stage(t: dict, field: str, vocab: dict | None):
+    """A Default-mode project's records may still carry a stale custom stage; it is not their status."""
+    return None if vocab and vocab["type"] == "Default" else t.get(field)
+
+
+def norm_task(t: dict, selected: str | None = None, vocab: dict | None = None) -> dict:
     users, names = _assignees(t.get("custom_assignees"))
     return {
         "name": t.get("name"), "subject": t.get("subject"), "status": t.get("status"),
-        "custom_task_status": t.get("custom_task_status"), "priority": t.get("priority"),
+        "custom_task_status": _custom_stage(t, "custom_task_status", vocab), "priority": t.get("priority"),
         "exp_start_date": t.get("exp_start_date"), "exp_end_date": t.get("exp_end_date"),
         "progress": t.get("progress"), "project": t.get("project"), "parent_task": t.get("parent_task"),
         "type": t.get("type"), "assigned_to": users, "assignee_names": names,
@@ -267,11 +275,11 @@ def norm_task(t: dict, selected: str | None = None) -> dict:
     }
 
 
-def norm_ticket(t: dict, selected: set | None = None) -> dict:
+def norm_ticket(t: dict, selected: set | None = None, vocab: dict | None = None) -> dict:
     users, names = _assignees(t.get("custom_assignees"))
     return {
         "name": t.get("name"), "subject": t.get("subject"), "status": t.get("status"),
-        "custom_issue_status": t.get("custom_issue_status"), "priority": t.get("priority") or None,
+        "custom_issue_status": _custom_stage(t, "custom_issue_status", vocab), "priority": t.get("priority") or None,
         "issue_type": t.get("issue_type") or None, "raised_by": t.get("owner") or None,
         "raised_by_name": t.get("owner_full_name") or t.get("owner") or None,
         "opened": (t.get("creation") or "")[:10] or None, "target_date": t.get("custom_target_date"),
@@ -319,26 +327,59 @@ def _match_statuses(given: list, valid: list) -> list:
     return [by_lower[s.lower()] for s in given]
 
 
-def _custom_statuses(api, identifier: str, key: str) -> list:
+def status_vocab(api, identifier: str, doctype: str) -> dict:
+    """The one status vocabulary `identifier` uses for `doctype` ("Task" or "Issue"), chosen by the project's
+    custom_status_type exactly as the backend does (project_helpers.status_fieldname): "Custom" means the
+    project's own ordered stages, stored in custom_task_status / custom_issue_status (the backend derives the
+    native status from each stage's native_status and refuses writes to `status`); "Default" means the standard
+    ERPNext statuses, stored in `status`. The two are never mixed."""
     meta = api.project_status_meta(identifier)
-    if meta.get("status_type") != "Custom":
-        return []
-    return [r.get("status") for r in meta.get(key) or [] if r.get("status")]
+    if meta.get("status_type") == "Custom":
+        rows = [r for r in meta.get(STATUS_ROWS[doctype]) or [] if r.get("status")]
+        return {"type": "Custom", "field": STATUS_FIELD[doctype], "statuses": [r["status"] for r in rows],
+                "native": {r["status"]: r.get("native_status") for r in rows}}
+    statuses = (api.task_meta() if doctype == "Task" else api.ticket_meta()).get("statuses") or []
+    return {"type": "Default", "field": "status", "statuses": statuses, "native": {s: s for s in statuses}}
+
+
+def stage_of(row: dict, vocab: dict) -> str | None:
+    """The status a record shows in its project's vocabulary."""
+    return row.get(vocab["field"]) or row.get("status")
+
+
+def native_of(row: dict, vocab: dict) -> str | None:
+    """The record's native status, read through its custom stage's mapping in Custom mode: the stored `status`
+    can lag behind a stage set before the backend derived it."""
+    return vocab["native"].get(row.get(vocab["field"])) or row.get("status")
+
+
+def _resolve_statuses(given: list, vocab: dict, doctype: str) -> list:
+    """`given` matched against the project's vocabulary. On a Custom project, a standard status names the stages
+    mapped to it as `candidates`, so the caller can ask which one instead of guessing."""
+    try:
+        return _match_statuses(given, vocab["statuses"])
+    except BBError as e:
+        if vocab["type"] != "Custom":
+            raise
+        bad = [s for s in given if s.lower() not in {v.lower() for v in vocab["statuses"]}]
+        stages = [s for s, n in vocab["native"].items() if (n or "").lower() in {b.lower() for b in bad}]
+        hint = f" Stages mapped to {', '.join(bad)}: {', '.join(stages)}." if stages else ""
+        raise BBError("bad_input", f"This project uses custom {doctype.lower()} statuses; {', '.join(bad)} "
+                                   f"{'is' if len(bad) == 1 else 'are'} not among them.{hint}",
+                      valid=vocab["statuses"], status_type="Custom",
+                      **({"candidates": stages} if stages else {})) from e
 
 
 def list_tasks(api, st, project=None, status=None, include_closed=False, mine=False, search=None, cycle=None,
                subtasks=False, limit=None) -> dict:
     ident = need_project(st, project)
-    wanted = split_csv(status)
-    if wanted:
-        valid = list(dict.fromkeys((api.task_meta().get("statuses") or []) +
-                                   _custom_statuses(api, ident, "task_statuses")))
-        wanted = _match_statuses(wanted, valid)
+    vocab = status_vocab(api, ident, "Task")
+    wanted = _resolve_statuses(split_csv(status), vocab, "Task")
     rows = api.tasks(ident, include_subtasks=subtasks)
     if wanted:
-        rows = [r for r in rows if r.get("status") in wanted or r.get("custom_task_status") in wanted]
+        rows = [r for r in rows if stage_of(r, vocab) in wanted]
     elif not include_closed:
-        rows = [r for r in rows if r.get("status") in OPEN_TASK]
+        rows = [r for r in rows if native_of(r, vocab) in OPEN_TASK]
     if mine:
         me = current_user(api, st)
         rows = [r for r in rows if me in _assignees(r.get("custom_assignees"))[0]]
@@ -354,28 +395,25 @@ def list_tasks(api, st, project=None, status=None, include_closed=False, mine=Fa
     shown, total = window(rows, limit)
     sel = (st.get("task") or {}).get("name")
     return {"fetched_at": now_stamp(), "project": ident, "project_label": project_label(st, ident),
-            "status": wanted or ("default open" if not include_closed else "all"), "cycle": cycle, "mine": mine,
-            "search": search, "count": len(shown), "total": total, "tasks": [norm_task(r, sel) for r in shown]}
+            "status": wanted or ("default open" if not include_closed else "all"), "status_type": vocab["type"],
+            "statuses": vocab["statuses"], "cycle": cycle, "mine": mine, "search": search, "count": len(shown),
+            "total": total, "tasks": [norm_task(r, sel, vocab) for r in shown]}
 
 
 def list_tickets(api, st, project=None, status=None, include_closed=False, priority=None, search=None,
                  limit=None) -> dict:
     ident = need_project(st, project)
-    wanted = split_csv(status)
-    custom = []
-    if wanted:
-        custom = _custom_statuses(api, ident, "issue_statuses")
-        valid = list(dict.fromkeys((api.ticket_meta().get("statuses") or []) + custom))
-        wanted = _match_statuses(wanted, valid)
+    vocab = status_vocab(api, ident, "Issue")
+    wanted = _resolve_statuses(split_csv(status), vocab, "Issue")
     prios = split_csv(priority)
     # get_tickets filters on ONE native status and ONE priority; anything else is filtered here.
-    server_status = wanted[0] if len(wanted) == 1 and wanted[0] not in custom else None
+    server_status = wanted[0] if len(wanted) == 1 and vocab["type"] == "Default" else None
     server_prio = prios[0] if len(prios) == 1 else None
     rows = api.tickets(ident, status=server_status, priority=server_prio)
     if wanted and not server_status:
-        rows = [r for r in rows if r.get("status") in wanted or r.get("custom_issue_status") in wanted]
+        rows = [r for r in rows if stage_of(r, vocab) in wanted]
     elif not wanted and not include_closed:
-        rows = [r for r in rows if r.get("status") in OPEN_ISSUE]
+        rows = [r for r in rows if native_of(r, vocab) in OPEN_ISSUE]
     if prios and not server_prio:
         lp = {p.lower() for p in prios}
         rows = [r for r in rows if (r.get("priority") or "").lower() in lp]
@@ -388,8 +426,9 @@ def list_tickets(api, st, project=None, status=None, include_closed=False, prior
     shown, total = window(rows, limit)
     sel = {t["name"] for t in st.get("tickets") or [] if t.get("name")}
     return {"fetched_at": now_stamp(), "project": ident, "project_label": project_label(st, ident),
-            "status": wanted or ("default open" if not include_closed else "all"), "priority": prios or None,
-            "search": search, "count": len(shown), "total": total, "tickets": [norm_ticket(r, sel) for r in shown]}
+            "status": wanted or ("default open" if not include_closed else "all"), "status_type": vocab["type"],
+            "statuses": vocab["statuses"], "priority": prios or None, "search": search, "count": len(shown),
+            "total": total, "tickets": [norm_ticket(r, sel, vocab) for r in shown]}
 
 
 def list_cycles(api, st, project=None, status=None, search=None, limit=None) -> dict:
@@ -497,8 +536,10 @@ def _scoped_get(api, st, doc_type, name, project, fetch):
 
 def get_task(api, st, name, project=None) -> dict:
     ident, t = _scoped_get(api, st, "task", name, project, lambda i: api.task(i, name))
-    out = norm_task(t, (st.get("task") or {}).get("name"))
-    out.update({"project_identifier": ident, "description": t.get("description"), "issue": t.get("issue"),
+    vocab = status_vocab(api, ident, "Task")
+    out = norm_task(t, (st.get("task") or {}).get("name"), vocab)
+    out.update({"project_identifier": ident, "status_type": vocab["type"], "status_field": vocab["field"],
+                "statuses": vocab["statuses"], "description": t.get("description"), "issue": t.get("issue"),
                 "minutes_of_meeting": t.get("custom_minutes_of_meeting"), "owner": t.get("owner"),
                 "owner_full_name": t.get("owner_full_name"), "completed_by": t.get("completed_by"),
                 "completed_on": t.get("completed_on"), "creation": t.get("creation")})
@@ -507,8 +548,10 @@ def get_task(api, st, name, project=None) -> dict:
 
 def get_ticket(api, st, name, project=None) -> dict:
     ident, t = _scoped_get(api, st, "ticket", name, project, lambda i: api.ticket(i, name))
-    out = norm_ticket(t, {x["name"] for x in st.get("tickets") or [] if x.get("name")})
-    out.update({"project_identifier": ident, "description": t.get("description"),
+    vocab = status_vocab(api, ident, "Issue")
+    out = norm_ticket(t, {x["name"] for x in st.get("tickets") or [] if x.get("name")}, vocab)
+    out.update({"project_identifier": ident, "status_type": vocab["type"], "status_field": vocab["field"],
+                "statuses": vocab["statuses"], "description": t.get("description"),
                 "resolution_details": t.get("resolution_details"), "creation": t.get("creation"),
                 "linked_tasks": api.linked_tasks(name)})
     return out
@@ -628,17 +671,22 @@ def download(api, url, download_dir) -> dict:
 
 # =============================================================== writes
 
-def create_task(api, st, subject, project=None, description=None, priority="Medium", status="Open", start=None,
+def create_task(api, st, subject, project=None, description=None, priority="Medium", status=None, start=None,
                 due=None, issue=None, parent=None, assign_to_me=True) -> dict:
     ident = need_project(st, project)
     if not (subject or "").strip():
         raise BBError("bad_input", "Task subject is required")
+    vocab = status_vocab(api, ident, "Task")
+    # No status: native Open, which a Custom project maps to its first Open stage.
+    stage = _resolve_statuses([status], vocab, "Task")[0] if status else None
+    custom = stage if vocab["type"] == "Custom" else None
     assignees = [{"user": current_user(api, st)}] if assign_to_me else []
-    t = api.create_task(ident, subject.strip(), status=status, priority=priority, assignees=assignees or None,
+    t = api.create_task(ident, subject.strip(), status=vocab["native"].get(stage) or "Open",
+                        custom_task_status=custom, priority=priority, assignees=assignees or None,
                         exp_start_date=parse_day(start).isoformat() if start else None,
                         exp_end_date=parse_day(due).isoformat() if due else None,
                         description=description or None, parent_task=parent, issue=issue)
-    return {"task": norm_task(t), "project_identifier": ident}
+    return {"task": norm_task(t, vocab=vocab), "project_identifier": ident}
 
 
 def _day_logs(api, day: date) -> list:
@@ -761,6 +809,22 @@ def update_log(api, st, entry, changes: dict) -> dict:
     return {"entry": entry, "timesheet": cur.get("timesheet"), "changed": changed}
 
 
+def _status_change(ch: dict, vocab: dict, doctype: str) -> dict:
+    """Route a status change to the project's status field. `status` and the custom field name are accepted
+    as synonyms; the value must belong to the project's vocabulary. The status goes last, so a resolution or
+    an assignee given with it is saved first (closing a ticket needs resolution_details)."""
+    given = {f: ch[f] for f in ("status", STATUS_FIELD[doctype]) if f in ch}
+    if len({str(v).lower() for v in given.values()}) > 1:
+        raise BBError("bad_input", f"Two different statuses given ({', '.join(map(str, given.values()))}); "
+                                   "pass one")
+    if vocab["type"] == "Default" and STATUS_FIELD[doctype] in given:
+        raise BBError("bad_input", f"This project uses the standard {doctype.lower()} statuses: set status, not "
+                                   f"{STATUS_FIELD[doctype]}", valid=vocab["statuses"], status_type="Default")
+    value = _resolve_statuses([str(next(iter(given.values())))], vocab, doctype)[0]
+    rest = {k: v for k, v in ch.items() if k not in given}
+    return {**rest, vocab["field"]: value}
+
+
 def update_record(api, st, doctype, name, changes: dict, completed_by=None, project=None) -> dict:
     dt = doctype_of(doctype)
     if not changes:
@@ -782,9 +846,15 @@ def update_record(api, st, doctype, name, changes: dict, completed_by=None, proj
     if bad:
         raise BBError("bad_input", f"Brewboard does not allow changing {', '.join(bad)} on {dt}",
                       valid=sorted(allowed))
-    if dt == "Task" and ch.get("status") == "Completed" and not completed_by:
-        raise BBError("bad_input", "Completing a task needs --completed-by <user> (Brewboard records who did it)")
     before = get_task(api, st, name, project) if dt == "Task" else get_ticket(api, st, name, project)
+    vocab = None
+    if {"status", STATUS_FIELD[dt]} & set(ch):
+        vocab = status_vocab(api, before["project_identifier"], dt)
+        ch = _status_change(ch, vocab, dt)
+        native = vocab["native"].get(ch[vocab["field"]])
+        if dt == "Task" and native == "Completed" and not completed_by:
+            raise BBError("bad_input", f"'{ch[vocab['field']]}' completes the task, which needs --completed-by "
+                                       "<user> (Brewboard records who did it)")
     applied, result = [], None
     for field, value in ch.items():  # the endpoints patch one field per call
         if isinstance(value, list) and field == "custom_assignees":
@@ -800,7 +870,7 @@ def update_record(api, st, doctype, name, changes: dict, completed_by=None, proj
             e.extra["failed_field"] = field
             raise
         applied.append(field)
-    after = norm_task(result) if dt == "Task" else norm_ticket(result)
+    after = norm_task(result, vocab=vocab) if dt == "Task" else norm_ticket(result, vocab=vocab)
     shown = {"custom_assignees": "assigned_to", "exp_end_date": "exp_end_date", "custom_target_date": "target_date"}
     changed = {}
     for f in applied:
@@ -808,6 +878,43 @@ def update_record(api, st, doctype, name, changes: dict, completed_by=None, proj
         if before.get(k) != after.get(k):
             changed[k] = {"from": before.get(k), "to": after.get(k)}
     return {"doctype": dt, "name": name, "changed": changed, "status": after.get("status")}
+
+
+# The backend's @mention pattern (helpers/comment_helpers.py MENTION_PATTERN): a name, then any following words
+# that start with a capital. Matching is by full name against the project's members only.
+MENTION = re.compile(r"@([A-Za-z]\w*(?:\s[A-Z]\w*)*)")
+
+
+def add_comment(api, st, doctype, name, content, project=None) -> dict:
+    """Comment on a task or ticket. Every @mention must name exactly one project member, or nothing is posted:
+    Brewboard silently notifies nobody for a mention it cannot resolve."""
+    dt = doctype_of(doctype)
+    if dt not in ("Task", "Issue"):
+        raise unsupported(f"comments on {dt} records", "Brewboard takes comments on tasks and tickets only.")
+    content = (content or "").strip()
+    if not content:
+        raise BBError("bad_input", "The comment is empty")
+    kind = "task" if dt == "Task" else "ticket"
+    ident, _rec = _scoped_get(api, st, kind, name, project,
+                              lambda i: api.task(i, name) if dt == "Task" else api.ticket(i, name))
+    mentions = list(dict.fromkeys(MENTION.findall(content)))
+    tagged = []
+    if mentions:
+        members = defaultdict(list)
+        for m in api.project(ident).get("users") or []:
+            if m.get("user"):
+                members[m.get("full_name") or m["user"]].append(m["user"])
+        bad = [m for m in mentions if len(members.get(m, [])) != 1]
+        if bad:
+            raise BBError("bad_input", f"@{', @'.join(bad)} would notify nobody: a mention is a project member's "
+                                       "full name, followed by punctuation or a lowercase word (the next capitalised "
+                                       "word counts as part of the name). Nothing was posted.",
+                          valid=sorted(n for n, users in members.items() if len(users) == 1))
+        tagged = [members[m][0] for m in mentions]
+    c = api.add_task_comment(name, content) if dt == "Task" else api.add_ticket_comment(name, content)
+    return {"doctype": dt, "name": name, "project_identifier": ident, "comment": c.get("name"),
+            "author": c.get("full_name") or c.get("owner"), "created": c.get("creation"),
+            "content": c.get("content") or content, "mentions": tagged}
 
 
 def delete_record(api, st, doctype, name, project=None) -> dict:

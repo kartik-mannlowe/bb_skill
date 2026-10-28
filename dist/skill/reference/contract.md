@@ -44,14 +44,15 @@ The endpoint table in `scripts/bbclient/api.py` (`ENDPOINTS`) is the machine-rea
 | Who am I | `whoami` | `GET auth.get_current_user` | name, full_name, email, roles |
 | List projects | `projects` | `GET projects.get_projects(include_archived)` | status / search / limit applied by bb.py |
 | Project detail | `get project <IDENT>` | `GET projects.get_project(project_identifier)` + `GET cycles.get_cycles` | members in `users` |
-| Task / ticket / meeting vocabularies | (validation) | `GET meta.get_task_meta`, `meta.get_ticket_meta`, `meta.get_meeting_meta`, `meta.get_project_status_meta(project_identifier)` | custom stages when the project uses them |
+| Task / ticket / meeting vocabularies | (validation) | `GET meta.get_task_meta`, `meta.get_ticket_meta`, `meta.get_meeting_meta`, `meta.get_project_status_meta(project_identifier)` | `status_type` picks one vocabulary per project: Custom → its own stages (with `native_status`), stored in `custom_task_status` / `custom_issue_status`; Default → the standard statuses from the task / ticket meta, stored in `status`. Never mixed |
 | List tasks | `tasks` | `GET tasks.get_tasks(project_identifier, include_subtasks)` | status / mine / cycle / search / limit applied by bb.py |
 | Task detail | `get task <ID>` | `GET tasks.get_task(project_identifier, task_name)` | project found via `search.search` when the ID is not in the selected project |
-| Create task | `create-task`, `log-time --new-task` | `POST tasks.create_task(project_identifier, subject, status, priority, assignees, exp_start_date, exp_end_date, description, parent_task, issue)` | |
-| Update task | `update task` | `POST tasks.update_task(task_name, field, value, completed_by)` | one field per call; allow-list in source |
+| Create task | `create-task`, `log-time --new-task` | `POST tasks.create_task(project_identifier, subject, status, custom_task_status, priority, assignees, exp_start_date, exp_end_date, description, parent_task, issue)` | on a Custom project a `--status` stage goes in `custom_task_status` |
+| Update task | `update task` | `POST tasks.update_task(task_name, field, value, completed_by)` | one field per call; allow-list in source. `status` goes to `custom_task_status` on a Custom project (the backend refuses `status` there) |
 | List tickets | `tickets` / `issues` | `GET tickets.get_tickets(project_identifier, status, priority)` | server filters ONE status / ONE priority; more values filtered by bb.py |
 | Ticket detail | `get issue <ID>` | `GET tickets.get_ticket(project_identifier, ticket_name)` + `GET tickets.get_linked_tasks(ticket_name)` | |
-| Update ticket | `update issue` | `POST tickets.update_ticket(ticket_name, field, value)` | one field per call |
+| Comment | `comment task\|issue <ID>` | `POST tasks.add_task_comment(task_name, content)`, `POST tickets.add_ticket_comment(ticket_name, content)` + `GET projects.get_project` for mentions | `@Full Name` mentions notify project members (backend `comment_helpers.MENTION_PATTERN`); bb.py refuses a mention that matches no member or several |
+| Update ticket | `update issue` | `POST tickets.update_ticket(ticket_name, field, value)` | one field per call. `status` goes to `custom_issue_status` on a Custom project |
 | List cycles | `cycles` | `GET cycles.get_cycles(project_identifier)` | status derived from dates by the server |
 | Cycle detail | `get cycle <ID>` | `GET cycles.get_cycle(cycle_id)` | includes the cycle's tasks |
 | Activity types | `activity-types` | `GET timesheets.get_activity_types` | |

@@ -66,7 +66,7 @@ class AgentOutput(unittest.TestCase):
 
     def test_write_commands_accept_table_output_and_keep_json_as_default(self):
         with TempHome() as home:
-            for cmd in ("log-time", "create-task", "create-mom", "update", "delete"):
+            for cmd in ("log-time", "create-task", "create-mom", "update", "comment", "delete"):
                 with self.subTest(cmd):
                     h = run([cmd, "--help"], home).stdout
                     self.assertIn("--format {json,table}", h)

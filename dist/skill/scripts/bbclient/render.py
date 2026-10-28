@@ -193,6 +193,16 @@ def projects(data: dict, prompt: bool = True) -> str:
                 "Enter the project ID to select." if prompt else None)
 
 
+def _other_status(command: str, data: dict, standard: str) -> str:
+    """Empty-list hint in the project's own vocabulary: a Custom project's last stage (its terminal one) and its
+    list of stages; `standard` otherwise."""
+    statuses = data.get("statuses") or []
+    if data.get("status_type") == "Custom" and statuses:
+        return (f"Try another of this project's statuses ({', '.join(statuses)}), for example "
+                f"`{command} {statuses[-1]}`.")
+    return f"Try another status, for example `{command} {standard}`."
+
+
 def tasks(data: dict, prompt: bool = True) -> str:
     filtered = isinstance(data.get("status"), list) or data.get("search") or data.get("cycle") or data.get("mine")
     every = data.get("status") == "all" and not filtered
@@ -203,7 +213,7 @@ def tasks(data: dict, prompt: bool = True) -> str:
     if not data["tasks"]:
         msg = empty(f"No tasks in {data['project_label']}." if every else
                     f"No {'matching' if filtered else 'open'} tasks in {data['project_label']}.",
-                    None if every else "Try another status, for example `/bb list_tasks Completed`.")
+                    None if every else _other_status("/bb list_tasks", data, "Completed"))
         return view(heading, meta, msg, [fetched(data)])
     rows = [[sel(t["selected"]), ident(t["name"]), t["subject"], t["custom_task_status"] or t["status"],
              t["priority"], due(t["exp_end_date"], t["overdue"]), t["assigned_to"], t["cycles"] or t["cycle_ids"]]
@@ -222,7 +232,7 @@ def tickets(data: dict, prompt: bool = True) -> str:
     if not data["tickets"]:
         msg = empty(f"No tickets in {data['project_label']}." if every else
                     f"No {'matching' if filtered else 'open'} tickets in {data['project_label']}.",
-                    None if every else "Try another status, for example `/bb list_tickets Resolved`.")
+                    None if every else _other_status("/bb list_tickets", data, "Resolved"))
         return view(heading, meta, msg, [fetched(data)])
     rows = [[sel(t["selected"]), ident(t["name"]), t["subject"], t["custom_issue_status"] or t["status"],
              t["priority"], t["issue_type"], t["raised_by_name"], t["opened"]] for t in data["tickets"]]
@@ -598,6 +608,13 @@ def update(d: dict) -> str:
     if d.get("status"):
         out += f"\nStatus now: {cell(d['status'])}.\n"
     return out
+
+
+def comment(d: dict) -> str:
+    what = "Task" if d.get("doctype") == "Task" else "Ticket"
+    pairs = [(what, Raw(code(d["name"]))), ("Project", d.get("project_identifier")), ("By", d.get("author")),
+             ("Notifies", d.get("mentions") or "no one (no mentions)"), ("Comment", short(d.get("content"), 300))]
+    return f"### Comment added · {cell(d['name'])}\n\n" + kv_table(pairs) + "\n"
 
 
 def delete(d: dict) -> str:

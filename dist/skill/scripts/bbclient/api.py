@@ -37,6 +37,8 @@ ENDPOINTS = {
     "ticket":              ("GET",  "tickets.get_ticket",                 "api/tickets.py::get_ticket"),
     "update_ticket":       ("POST", "tickets.update_ticket",              "api/tickets.py::update_ticket"),
     "linked_tasks":        ("GET",  "tickets.get_linked_tasks",           "api/tickets.py::get_linked_tasks"),
+    "add_task_comment":    ("POST", "tasks.add_task_comment",             "api/tasks.py::add_task_comment"),
+    "add_ticket_comment":  ("POST", "tickets.add_ticket_comment",         "api/tickets.py::add_ticket_comment"),
     "activity_types":      ("GET",  "timesheets.get_activity_types",      "api/timesheets.py::get_activity_types"),
     "timesheet_logs":      ("GET",  "timesheets.get_timesheet_logs",      "api/timesheets.py::get_timesheet_logs"),
     "create_log":          ("POST", "timesheets.create_timesheet_log",    "api/timesheets.py::create_timesheet_log"),
@@ -152,6 +154,13 @@ class BrewboardAPI:
 
     def linked_tasks(self, ticket_name: str) -> list:
         return self._list("linked_tasks", ticket_name=ticket_name)
+
+    # comments
+    def add_task_comment(self, task_name: str, content: str) -> dict:
+        return self._dict("add_task_comment", task_name=task_name, content=content)
+
+    def add_ticket_comment(self, ticket_name: str, content: str) -> dict:
+        return self._dict("add_ticket_comment", ticket_name=ticket_name, content=content)
 
     # time
     def activity_types(self) -> list:

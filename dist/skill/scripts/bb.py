@@ -510,6 +510,12 @@ def cmd_submit(a) -> None:
                       "There is no submit endpoint; submit timesheets in Brewboard / ERPNext.")
 
 
+def cmd_comment(a) -> None:
+    merge_file_fields(a, {"content": "str"})
+    emit_as(a, service.add_comment(make_api(), config.load_state(), a.doctype, a.name, a.content, a.project),
+            render.comment)
+
+
 def cmd_delete(a) -> None:
     emit_as(a, service.delete_record(make_api(), config.load_state(), a.doctype, a.name, a.project), render.delete)
 
@@ -588,7 +594,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = add("tasks", cmd_tasks, "List tasks of the selected (or given) project", fmt=True)
     s.add_argument("--project", help="project identifier")
-    s.add_argument("--status", help="comma list, e.g. 'Open,Working' (default: all open statuses)")
+    s.add_argument("--status", help="comma list from the project's vocabulary (its custom stages, or the standard "
+                                   "statuses), e.g. 'Open,Working' (default: all open)")
     s.add_argument("--all", action="store_true", help="include Completed / Cancelled")
     s.add_argument("--mine", action="store_true", help="only tasks assigned to me")
     s.add_argument("--cycle", help="only tasks in this cycle (ID or name)")
@@ -599,7 +606,8 @@ def build_parser() -> argparse.ArgumentParser:
     s = add("tickets", cmd_tickets, "List issues (tickets) of the selected (or given) project", aliases=("issues",),
             fmt=True)
     s.add_argument("--project", help="project identifier")
-    s.add_argument("--status", help="comma list (default: Open, Replied, On Hold)")
+    s.add_argument("--status", help="comma list from the project's vocabulary (its custom stages, or the standard "
+                                   "statuses) (default: all open)")
     s.add_argument("--all", action="store_true", help="include Resolved / Closed")
     s.add_argument("--priority", help="comma list, e.g. High,Medium")
     s.add_argument("--search")
@@ -631,12 +639,21 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--set", action="append", metavar="FIELD=VALUE")
     s.add_argument("--data", help="JSON object of fields")
     s.add_argument("--file", help="path to a JSON object of fields ('-' for stdin)")
-    s.add_argument("--completed-by", help="user who completed the task (needed for status=Completed)")
+    s.add_argument("--completed-by", help="user who completed the task (needed for any status that completes it)")
     s.add_argument("--project", help="project identifier (task / issue / mom)")
 
     s = add("submit", cmd_submit, "Not supported by the Brewboard API (kept to explain why)")
     s.add_argument("doctype")
     s.add_argument("name")
+
+    s = add("comment", cmd_comment, "Comment on a task or ticket; @Full Name mentions notify project members",
+            fmt=True)
+    s.add_argument("doctype", help="task or issue")
+    s.add_argument("name")
+    s.add_argument("--file", help="JSON object {\"content\": \"...\"} ('-' for stdin); the text never goes on the "
+                                  "command line")
+    s.add_argument("--project", help="project identifier")
+    s.set_defaults(content=None)
 
     s = add("delete", cmd_delete, "Delete minutes of meeting (the only deletion the API offers)", fmt=True)
     s.add_argument("doctype")
@@ -649,7 +666,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--desc")
     s.add_argument("--file", help="JSON object with subject / desc instead of the options ('-' for stdin)")
     s.add_argument("--priority", default="Medium", choices=["Low", "Medium", "High", "Urgent"])
-    s.add_argument("--status", default="Open")
+    s.add_argument("--status", help="a status of the project's vocabulary: its custom stages when it uses custom "
+                                   "statuses, else the standard ones (default: Open, or the first Open stage)")
     s.add_argument("--start", help="expected start date")
     s.add_argument("--due", help="expected end date")
     s.add_argument("--issue", help="link to this ticket ID")

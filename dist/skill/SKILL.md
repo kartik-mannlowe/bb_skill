@@ -87,7 +87,7 @@ bb.py ctx set-task <ID> --file - <<'BB_JSON'
 BB_JSON
 ```
 
-Run it exactly in this shape: nothing before `BB_JSON` on the closing line, not even spaces. Keep the JSON on that one line (line breaks inside a value are written `\n`) and escape `"` and `\` the JSON way. The quotes around `'BB_JSON'` stop the shell from expanding anything in the JSON; never drop them. `--file -` is accepted by `ctx` (title, titles, record), `create-task` (subject, desc), `log-time` (desc, new_task, task_desc) and `update` (any fields). A URL taken from a description is passed in single quotes after percent-encoding every character other than letters, digits and `/ . _ - ~ % :`, so it can never contain a quote.
+Run it exactly in this shape: nothing before `BB_JSON` on the closing line, not even spaces. Keep the JSON on that one line (line breaks inside a value are written `\n`) and escape `"` and `\` the JSON way. The quotes around `'BB_JSON'` stop the shell from expanding anything in the JSON; never drop them. `--file -` is accepted by `ctx` (title, titles, record), `create-task` (subject, desc), `log-time` (desc, new_task, task_desc), `update` (any fields) and `comment` (content). A URL taken from a description is passed in single quotes after percent-encoding every character other than letters, digits and `/ . _ - ~ % :`, so it can never contain a quote.
 - **No duplicate writes.** If a write fails with `write_outcome_unknown` or `server_error`, do not run it again: list the records (`bb.py timesheets --since <date>`, `bb.py moms`) to see whether it was saved, then tell the user. `possible_duplicate` means nothing was created because an identical record exists: show the existing one and ask before re-running with `--allow-duplicate`.
 - **Authentication failures: explain, never re-login on your own.** `bb.py init --login` gets a credential for this CLI alone (`client=cli`). Signing in to the Brewboard web UI does not revoke it, and it does not revoke the web UI's. Older backends without per-client credentials instead rotate the account's single secret on every sign-in, so there the web UI and `bb.py` revoke each other; `init` says which case applies. `bb.py` diagnoses every 401 with one read-only identity check:
   - `credentials_rejected`: the server no longer accepts the saved credential. Relay the message and `next_steps`: a CLI credential was revoked, expired or its user disabled; legacy account keys were replaced by a later sign-in. Offer `/bb init --login` to sign in again, and start it only when the user asks. Never run `bb.py init --login` yourself.
@@ -127,7 +127,7 @@ The ID is the Brewboard project identifier. Projects without one show `(no ident
 |---|---|---|---|---|---|---|---|
 | * | `TASK-2026-00009` | Investigate Android crash on app start | Working | Urgent | **2026-10-05 (overdue)** | dev@bb.local, qa@bb.local | Beta hardening |
 
-Single selection. On projects with custom statuses the Status column shows the custom stage.
+Single selection. The Status column shows the status in the project's own vocabulary (see "Task and ticket statuses").
 
 ### Tickets
 
@@ -229,17 +229,25 @@ Syntax: `/bb list_tasks [status] [limit]` and `/bb list_tickets [status] [limit]
 
 The limit applies only to list records. It is not an attachment count, and listing records never downloads their attachments. Attachments are retrieved only when a task or ticket becomes the active record ("Task and ticket attachments").
 
+### Task and ticket statuses
+Each project uses exactly one status vocabulary for its tasks and one for its tickets, chosen by its Status Type (`custom_status_type`). `bb.py` reads it from Brewboard on every list, `get`, `create-task` and status `update`, and reports it as `status_type` with the valid `statuses`:
+
+- **Custom:** the project's own stages, in pipeline order (for example Backlog, To Do, In Progress, Closed). Only these are valid; the standard statuses are not, even where a stage has the same name. The stage is stored in `custom_task_status` / `custom_issue_status`, and Brewboard derives the standard status from it.
+- **Default:** the standard ERPNext statuses only: tasks Open, Working, Pending Review, Overdue, Template, Completed, Cancelled; tickets Open, Replied, On Hold, Resolved, Closed.
+
+Use only statuses from the project's list, in filters and in changes; never offer one from the other vocabulary. Write every status change as `--set status=<value>`: `bb.py` stores it in the right field. An unknown status fails with `bad_input`, the `valid` list and, on a Custom project given a standard status, the `candidates` stages mapped to it: show them and ask, never guess. A stage that completes a task needs `--completed-by`, and one that resolves or closes a ticket needs resolution_details, as with the standard statuses.
+
 ### list_tasks
 `/bb list_tasks [status] [limit]`, e.g. `/bb list_tasks`, `/bb list_tasks Open`, `/bb list_tasks Open 10`, `/bb list_tasks Working 20`. Parse the arguments as in "Task and ticket list arguments".
 
 1. Needs a project. If `ctx show` has none, or the user names another one, run list_projects first, then continue at step 2.
 2. Always call `bb.py tasks --limit <limit> --format table` afresh (default limit 5). It is sorted by priority then due date.
    - No status: lists the project's open tasks (Open, Working, Pending Review, Overdue). This is the default, also for the `/bb` menu.
-   - With a status: `bb.py tasks --status '<status>' --limit <limit> --format table`. Valid statuses come from Brewboard (normally Open, Working, Pending Review, Overdue, Template, Completed, Cancelled, plus the project's custom stages); `bb.py` matches case-insensitively and, for an unknown status, fails with `bad_input` and the list of valid ones: show that list and ask instead of guessing. Several can be given comma-separated (`Open,Working`).
+   - With a status: `bb.py tasks --status '<status>' --limit <limit> --format table`. Valid statuses are the project's own (see "Task and ticket statuses"); `bb.py` matches case-insensitively and, for an unknown status, fails with `bad_input` and the list of valid ones: show that list and ask instead of guessing. Several can be given comma-separated (`Open,Working`).
    - Other options: `--mine`, `--all` (include completed / cancelled), `--cycle <CYCLE-ID or name>`, `--subtasks`, `--search TEXT`.
 3. Print the output and ask for the pick as in "Selecting records". Filtered or not, it is the same table.
 4. On a pick: `bb.py ctx set-task <ID> --file -` with `{"title": "<subject>"}` on stdin ("Shell safety"), then run the sequence in "Task and ticket attachments" (full record, record attachments, description attachments, inspect). Only then give a 2 to 4 line brief of the description plus the Attachments line, so the task and its attachments serve as working context for the coding session.
-5. Offer, but don't do unasked, to set it to Working: `bb.py update task <ID> --set status=Working`.
+5. Offer, but don't do unasked, to start it: `bb.py update task <ID> --set status=Working` on a Default project; on a Custom project use the in-progress stage from the `statuses` the `get` output lists (ask if several fit).
 
 ### list_tickets
 `/bb list_tickets [status] [limit]` (also `/bb tickets`, `/bb issues`), e.g. `/bb list_tickets`, `/bb list_tickets Open`, `/bb list_tickets Open 10`, `/bb list_tickets Replied 20`, `/bb list_tickets On Hold`. Parse the arguments as in "Task and ticket list arguments".
@@ -247,7 +255,7 @@ The limit applies only to list records. It is not an attachment count, and listi
 1. Needs a project. If `ctx show` has none, run list_projects first, then continue at step 2.
 2. Always call `bb.py tickets --limit <limit> --format table` afresh (default limit 5).
    - No status: lists the project's open tickets (Open, Replied, On Hold). This is the default, also for the `/bb` menu.
-   - With a status: `bb.py tickets --status '<status>' --limit <limit> --format table`. Valid statuses come from Brewboard (normally Open, Replied, On Hold, Resolved, Closed, plus custom stages); an unknown one fails with `bad_input` and the valid list. Several can be given comma-separated.
+   - With a status: `bb.py tickets --status '<status>' --limit <limit> --format table`. Valid statuses are the project's own (see "Task and ticket statuses"); an unknown one fails with `bad_input` and the valid list. Several can be given comma-separated.
    - Other options: `--all` (include Resolved / Closed), `--priority High`, `--search TEXT`.
    - A user who only has the `BB Ticket User` role sees just the tickets they raised; Brewboard enforces this.
 3. Print the output and ask for the pick(s) as in "Selecting records".
@@ -359,10 +367,11 @@ Requests like "change yesterday's 3h log to 2h", "mark TASK-... completed" or "a
 1. Find the record (`timesheets --since <date>`, `tasks --search`, `moms`, or `find`), then `bb.py get <type> <ID>`. For a task or ticket, run "Task and ticket attachments" before proposing the change.
 2. Show the change as before → after and confirm.
 3. Apply it with `--format table` added to the `update` or `delete` command, and print the output verbatim (a Field / Before / After table of what Brewboard actually changed, or "No change"):
-   - **Task / ticket fields:** `bb.py update task <ID> --set field=value [--set ...]` (or `update issue`) for IDs, dates and option values; text such as a subject, description or resolution goes on stdin with `--file -` as a JSON object ("Shell safety"). Brewboard changes one field per request, so several fields are applied one after another; if one fails, `bb.py` reports which were already applied. Task fields: subject, status, priority, exp_start_date, exp_end_date, description, parent_task, custom_assignees, custom_task_status, type. Ticket fields: subject, status, priority, issue_type, custom_target_date, description, resolution_details, custom_assignees, custom_issue_status. Completing a task needs `--completed-by <user>` (ask who did it; propose the user). Closing or resolving a ticket needs resolution_details first.
+   - **Task / ticket fields:** `bb.py update task <ID> --set field=value [--set ...]` (or `update issue`) for IDs, dates and option values; text such as a subject, description or resolution goes on stdin with `--file -` as a JSON object ("Shell safety"). Brewboard changes one field per request, so several fields are applied one after another; if one fails, `bb.py` reports which were already applied. Task fields: subject, status, priority, exp_start_date, exp_end_date, description, parent_task, custom_assignees, type. Ticket fields: subject, status, priority, issue_type, custom_target_date, description, resolution_details, custom_assignees. A status is always `--set status=<value>` from the project's vocabulary; `bb.py` writes it to `custom_task_status` / `custom_issue_status` on a Custom project ("Task and ticket statuses"). Completing a task, by Completed or by a stage mapped to it, needs `--completed-by <user>` (ask who did it; propose the user). Closing or resolving a ticket needs resolution_details first (pass it in the same update: `bb.py` saves it before the status).
    - **A time log:** `bb.py update log <ENTRY> --set hours=2 [--set from_time='YYYY-MM-DD HH:MM']`; a new description goes on stdin with `--file -` as `{"description": "..."}` ("Shell safety"). Only the user's own Draft logs can be edited; changing hours moves the end time.
    - **Minutes:** `bb.py update mom <ID> --file <path>` with a JSON object of the fields to change (same names as create_mom output: meeting_topic, meeting_type, location, from_time, to_time, meeting_notes, decisions, assessment_observations, attendees, external_attendees, minutes, action_items). A table you send replaces that table as a whole: start from `bb.py get mom <ID>` and keep each row's `name`. Brewboard refuses an edit that would drop an action item already converted to a task.
-4. Delete only on an explicit request, and only minutes can be deleted: `bb.py delete mom <ID>` (Project Managers only). Brewboard keeps the tasks and time logs that came from the meeting.
+4. **Comments** on a task or ticket ("comment on ISS-... asking Priya to test it"): show the exact text and who it notifies, confirm, then `bb.py comment task|issue <ID> --file - --format table` with `{"content": "<text>"}` on stdin ("Shell safety"), and print the output verbatim. To tag someone write `@` plus their full name as Brewboard shows it (the ticket's Raised By, a project member), followed by punctuation or a lowercase word: Brewboard reads every following capitalised word as part of the name (`@Priya Shah, please test` notifies Priya Shah; `@Priya Shah Please test` notifies nobody). `bb.py` checks each mention against the project's members and posts nothing if one matches no one or several; it then fails with `bad_input` and the `valid` names.
+5. Delete only on an explicit request, and only minutes can be deleted: `bb.py delete mom <ID>` (Project Managers only). Brewboard keeps the tasks and time logs that came from the meeting.
 
 Type names `bb.py` accepts: `project`, `task`, `issue` / `ticket`, `cycle`, `mom`, `timesheet` / `ts`, `log` (a time-log entry).
 
