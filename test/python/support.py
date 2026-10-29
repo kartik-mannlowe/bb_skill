@@ -12,6 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "dist" / "skill" / "scripts"
 BB_PY = SCRIPTS / "bb.py"
+# The tests import the packaged client from dist/; without this, a run without -B (`python3 -m unittest discover -s
+# test/python`) leaves __pycache__ there, which check-dist and the package checks reject.
+sys.dont_write_bytecode = True
 sys.path.insert(0, str(SCRIPTS))
 
 ANSI = re.compile(r"\x1b\[[0-9;]*m")

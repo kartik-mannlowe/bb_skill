@@ -3,7 +3,7 @@
   "files": [
     {
       "path": "skill/SKILL.md",
-      "sha256": "b6b4c10613aff33f64607cf8ca2ac9e355e9bccb85566f17707dd380c8d196af",
+      "sha256": "75fb545ed2e23e54cb41531d5d287c8b0826335a8c32ded5967e884645db7e73",
       "mode": "644"
     },
     {
@@ -82,138 +82,258 @@
       "mode": "644"
     },
     {
-      "path": "adapters/claude-code/bb-create_mom.md",
-      "sha256": "e5e0a167dad2eaf67933227a730d5d204aeca4708a7ce7390e87161cd7221be2",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-cycles.md",
-      "sha256": "b8edbec350ce87295e140cc5ed10fb09b1f830f030756cdf6ad43358355228bd",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-find.md",
-      "sha256": "230d639156a6cc59d910b6cbe70378abd3c9eb49896a34d06dd95f100c75e273",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-init.md",
-      "sha256": "b6b0918ddb21d78cf7121e1c66776e3f408f51130e0356ce9a9ab5f56a025997",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-list_projects.md",
-      "sha256": "f39add7bbd634bc2b1cba19fe03e847f3d5ba0d3f5a10d192d8dda894b673e50",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-list_tasks.md",
-      "sha256": "8b7be040baa91661f09b663187fba2f65dad2a21c563fa85232531977a2bfa0d",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-list_tickets.md",
-      "sha256": "3963802d963a04594a0cf7a35e4d6206db425e42606ad950582de20d72f487b0",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-log_time.md",
-      "sha256": "0300b0d2f6e381e3c0b32e47c021785d813d6d240c8e7abe2489e28d17185156",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-moms.md",
-      "sha256": "ec6f1676ddbf542a55c05dd7d6cf58ecac3c97a93159d1bca45040ec06250366",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-show.md",
-      "sha256": "d4eb37b6ca364da29ca3cb7dfe1d9df078b3fa1298eb1fa205d613d286195621",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-status.md",
-      "sha256": "e16b3014090b53dfa192e9e6ef676c020f59cd7661af4d69282b01f11c3010dc",
-      "mode": "644"
-    },
-    {
-      "path": "adapters/claude-code/bb-timesheets.md",
-      "sha256": "5ba0da288a48995939e9cbb0285e9ae32f0381e83129644af36f475c6ade0b51",
-      "mode": "644"
-    },
-    {
       "path": "adapters/claude-code/bb.md",
-      "sha256": "1f293643874e5a17eb1936034ce614cdb7e04c4ed46131dc27720972d819f0b3",
+      "sha256": "59598a259c471b871d014e4535e94ce30b62b29f8c8a3201831c6ad40df570d4",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-create_mom.md",
-      "sha256": "e5e0a167dad2eaf67933227a730d5d204aeca4708a7ce7390e87161cd7221be2",
+      "path": "adapters/claude-skills/bb create_mom/SKILL.md",
+      "sha256": "fb599228e04a850069b814b667683d23c26510e03dd42d9dddda4382594d283a",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-cycles.md",
-      "sha256": "b5b36690ad83f8fcf21debc08bafa418c606e1b55f362a3736ab14912ae06426",
+      "path": "adapters/claude-skills/bb cycles/SKILL.md",
+      "sha256": "36de8ef149d01d5258e3ce86f3ea5b93e98573e3133313c274a3e7d6df415b97",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-find.md",
-      "sha256": "9f4fe71440c7e7970c1a5f1ea268e60c978da4bc05e8580fd26e3c08f1c640c7",
+      "path": "adapters/claude-skills/bb find/SKILL.md",
+      "sha256": "2563d544c7cce884117307338891f07fb97d26394fe62993105c5187b64df531",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-init.md",
-      "sha256": "a00c198620bfa65cb6e8c6629e439fc1b15691285f4635a5ebb8627d2b9c753d",
+      "path": "adapters/claude-skills/bb init/SKILL.md",
+      "sha256": "5975f5883d8d1ca31aeae27c09725825a953b80620439e58c791c4ab3fcfcfa0",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-list_projects.md",
-      "sha256": "061c0b25e41d3b15ef4dfa81b74ba694493b202b2638bca87b2a3effd5e137d3",
+      "path": "adapters/claude-skills/bb list_projects/SKILL.md",
+      "sha256": "319854d27ceddaa7835af56bf95599f5532dffa22761e509f34e80e68d0c6b7d",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-list_tasks.md",
-      "sha256": "6bbbcf52793f459150b79f8039cf8e6e12b3301e3ad02dc7589964cc2e536626",
+      "path": "adapters/claude-skills/bb list_tasks/SKILL.md",
+      "sha256": "d248c1ecec28bdf14b1b1f4080dce344e7c6b4dd0239f81159f9c025f919002f",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-list_tickets.md",
-      "sha256": "4ba0f402861d8dd31ed6f8cdfe391baea6f0084ccf906aff277ee523df3d6e20",
+      "path": "adapters/claude-skills/bb list_tickets/SKILL.md",
+      "sha256": "c886621693c9dc8b2219583dff01bbd1c7eab7f4bf12af751d7f8f44c61819a8",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-log_time.md",
-      "sha256": "f7125fd3f75d669e5cf67958c03c25cce43fe043bcff0dc8a1cf1599a377359c",
+      "path": "adapters/claude-skills/bb log_time/SKILL.md",
+      "sha256": "40b68be007a0c7c33d5614f288a6e858dfaaffc5b481160ae1e9ec520136a54c",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-moms.md",
-      "sha256": "32a775f2cc8637a18e5d52d57c533863970774dec9dc6df1a3d5726918649005",
+      "path": "adapters/claude-skills/bb moms/SKILL.md",
+      "sha256": "962e7f24c4bef85398aa89c8f06bf9767a839989fd0d9ba8211ef087bc503a6c",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-show.md",
-      "sha256": "37574b0eab20f8ccf9440f601c0e81dc25c9bfd2b21e4751eb9993a62c7dcb25",
+      "path": "adapters/claude-skills/bb show/SKILL.md",
+      "sha256": "1d41af5cb7084f2bad107ed2ef548738d55312069edb88ba744f2dd396d1fb58",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-status.md",
-      "sha256": "e16b3014090b53dfa192e9e6ef676c020f59cd7661af4d69282b01f11c3010dc",
+      "path": "adapters/claude-skills/bb status/SKILL.md",
+      "sha256": "437c88c3da04298b4a85177990b59cb09c84aabee3ee267ace6eea953e629b3d",
       "mode": "644"
     },
     {
-      "path": "adapters/opencode/bb-timesheets.md",
-      "sha256": "92a6d1df7b2c8ec1f5a085a0632b63312e11c6c43c82f58949028f676d2889b2",
+      "path": "adapters/claude-skills/bb timesheets/SKILL.md",
+      "sha256": "b5b1e97de2d85a1df236d5b9b6dffa04080518c16afac98d3e58be1bf7b12b98",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb create_mom.md",
+      "sha256": "9bd0afaf796eb2bf995a2beeb1b3049bfb3f851dd400602504dfa1bea45a7abe",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb cycles.md",
+      "sha256": "da639a34049b1563381eea8b6409490e3874f7bc3910c11c308818b4ab0f8d9b",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb find.md",
+      "sha256": "9d1aca82dfcf3d6234a93bf4d7b87ab80d87da64cce0dd7058e92b63080f5d3a",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb init.md",
+      "sha256": "2927b7cb217155d391d44925336a81639845d09ef688edd4f92eb4ab1998930e",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb list_projects.md",
+      "sha256": "e629a0508be513d91342b963895f99808864c75ad1e1d19b06768360ed2148ca",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb list_tasks.md",
+      "sha256": "71f8dd15ffe7bf4aba03e83673026a37dca06f564eddaf27971d9c4f9575170b",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb list_tickets.md",
+      "sha256": "602dd527946c3fe93488ca1dc1c8c15b35faed581077cefe5b54e572e0f3fc19",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb log_time.md",
+      "sha256": "e2152527b96963d038015b6fb0c5ba24ad1992fa6175ebe6754c1a49bcc75557",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb moms.md",
+      "sha256": "e60d1468c399d9bef52ec677fb36a0e8bb96ba2674ef1575b65bd8f1d33cfff7",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb show.md",
+      "sha256": "1024ca71327644f15466c4db3a75792275a60d9b2bc63c388090fc533ead7c1e",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb status.md",
+      "sha256": "d1759ec5c5188a0f6da3dcbf2048fc6bc2744ded60cf0bf1f0f336484aa049ee",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/opencode/bb timesheets.md",
+      "sha256": "cf354bdccda59dfd3a22bc8a131b89bfd68e2f5065eb194ba5ddc7698a6fbed4",
       "mode": "644"
     },
     {
       "path": "adapters/opencode/bb.md",
-      "sha256": "581e883882a99a8745af63a4e3d3aab1178ec486d36b06584d71e093f33ed315",
+      "sha256": "ccc92cbba444188f6d6a6d5d606679560e47598ee92d135d0c6977de007e0390",
       "mode": "644"
     },
     {
       "path": "adapters/agent-skill/bb.md",
       "sha256": "1008cda80e064f9c46d3ddf81ee9a3239b3b88f01597d162bbffd1c2a199a308",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-create-mom/SKILL.md",
+      "sha256": "05c2452b8205fc6e31e84c7e796db7952f1e5aed64453f88e126144013275700",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-cycles/SKILL.md",
+      "sha256": "f48076339d8cd74e40a5d6bee99efe452c4830dccbfca2b501e59f7e06f922df",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-find/SKILL.md",
+      "sha256": "16eda409bdcf467da1bcb8cf079fd9f2349c197b3397515ded4e44075644a767",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-init/SKILL.md",
+      "sha256": "c86f0c398fb34a90013302f450766a8c3b0a2d0517ef6c9b7981c13c7d656c2c",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-list-projects/SKILL.md",
+      "sha256": "b121e146ddcd0967a018f47441734e2df9c9c1f0bed398a8477142028417d40e",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-list-tasks/SKILL.md",
+      "sha256": "24987a5a4563fc5bed06879ae213f96160f6bc42316f2f390011727cde512137",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-list-tickets/SKILL.md",
+      "sha256": "722ae9b2edd26688a7eb94d2e945cc4fc2f39e72c3c53b2f3b42b21ec0e3dfb5",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-log-time/SKILL.md",
+      "sha256": "dd4a3076f370187704226b551d32e8db4d6b3472405185c7f3cc75070a9d739b",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-moms/SKILL.md",
+      "sha256": "28741a3866c5ac6efc3d333d5433b40a67e381a25f2c938763a1aa4ddbbbb191",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-show/SKILL.md",
+      "sha256": "eae461e75df526a307e463ab612e6a52e53d9bdd817bb58cc49bf9d3d929d8e5",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-status/SKILL.md",
+      "sha256": "a8d292003342621daa726cb7f351433bc9ec974b49b2894513ea11a6a332485b",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/antigravity-skills/bb-timesheets/SKILL.md",
+      "sha256": "53772feb046b2fff643b9e79c86c521bc1aa95b09b58b6137a767820eef44332",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-create-mom/SKILL.md",
+      "sha256": "c63165f1834aca9222e59056c0c2c9a80a05faa9f522757d383502e9cb068bfc",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-cycles/SKILL.md",
+      "sha256": "db50b3e04ccd30a002157160a4ef729a679ed312f8c807b266cc18c9cdac5b92",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-find/SKILL.md",
+      "sha256": "4bb34aff6854b0f7afb9d19736f0e905fec28e327a8e95f9eb5ea37a56b1c584",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-init/SKILL.md",
+      "sha256": "13aa71fa0c6d035df30b65f070e2fac4aedca8b3f23a60ff664112de3c3d684f",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-list-projects/SKILL.md",
+      "sha256": "086af9c8120a907b78b5c3695c4f18d9450a637962776107453bcd04b00f1447",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-list-tasks/SKILL.md",
+      "sha256": "0cda49eb1f8b382d734c73a3affe14dc27b27cd51f27f301da463aa2cb77287c",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-list-tickets/SKILL.md",
+      "sha256": "d45f72c131b985842bfdfc68140babf6c99b2374d9c868b5c20f8ac6eff61a73",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-log-time/SKILL.md",
+      "sha256": "19e91caec98043f82cc39f5a88b4fa97dbb6d11198c2f1f188e692ec3f5242cd",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-moms/SKILL.md",
+      "sha256": "2e26db5377c09ab8494a692099cb6daa77891811cff3826564d0b671e67284bc",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-show/SKILL.md",
+      "sha256": "b256e729408e122ff72ec48ab1a9cd12ebb445ee306f05a5815ccc9fd08dae93",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-status/SKILL.md",
+      "sha256": "3910f36dae2aa14a3aea658cdb62f83ad0480d5c7a80b091b997d8ecf3437106",
+      "mode": "644"
+    },
+    {
+      "path": "adapters/codex/bb-timesheets/SKILL.md",
+      "sha256": "51d4c3bf22bc679a87838e4d9ed5c5ad310f2b1fe09fa3c185abdfa2e80ae26c",
       "mode": "644"
     }
   ]

@@ -235,9 +235,9 @@ class Routing(unittest.TestCase):
         self.assertIn("`/bb init [--login | --logout]`", skill)
         for agent in ("claude-code", "opencode"):
             with self.subTest(agent):
-                shortcut = (ROOT / "dist" / "adapters" / agent / "bb-init.md").read_text(encoding="utf-8")
-                self.assertIn("$ARGUMENTS", shortcut, "/bb-init --logout passes the flag on")
-                self.assertIn("bb.py init --logout --format table", shortcut)
+                command = (ROOT / "dist" / "adapters" / agent / "bb.md").read_text(encoding="utf-8")
+                self.assertIn("$ARGUMENTS", command, "/bb init --logout passes the flag on")
+                self.assertIn("bb.py init --logout --format table", command)
         self.assertIn("init [--login | --logout]", (ROOT / "dist" / "adapters" / "claude-code" / "bb.md").read_text())
 
     def test_parser_has_init_logout_with_table_output(self):

@@ -2,13 +2,13 @@
 // Maintainer tool (not shipped): verifies dist/, read-only (it never writes). Exit 1 when
 //   - a packaged file is missing, changed, has the wrong executable bit or is not a regular file,
 //   - dist/ holds anything the manifest does not list (or anything that must never be packaged),
-//   - a generated file is stale: the OpenCode commands or the manifest differ from what
-//     `npm run build` (scripts/build-dist.js) makes from the authored files.
+//   - a generated file is stale: the OpenCode command, the Codex shortcut skills or the manifest differ
+//     from what `npm run build` (scripts/build-dist.js) makes from the authored files.
 "use strict";
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { manifestFor, expectedOpencode } = require("./build-dist");
+const { manifestFor, expectedGenerated, GENERATED_DIRS } = require("./build-dist");
 
 const DIST = path.join(__dirname, "..", "dist");
 const sha = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
@@ -60,17 +60,26 @@ function verifyDist(dist = DIST) {
 // Every way the generated files differ from what `npm run build` would write. [] means up to date.
 function verifyGenerated(dist = DIST) {
   const problems = [];
-  const outDir = path.join(dist, "adapters", "opencode");
   let want;
-  try { want = expectedOpencode(dist); } catch (e) { return [e.message]; }
-  for (const [f, text] of Object.entries(want)) {
+  try { want = expectedGenerated(dist); } catch (e) { return [e.message]; }
+  // OpenCode's /bb comes from the Claude Code command of the same file name; every other generated file from the table.
+  const fromClaude = (rel) => /^adapters\/opencode\/[^/]+$/.test(rel) &&
+    fs.existsSync(path.join(dist, "adapters", "claude-code", path.posix.basename(rel)));
+  const source = (rel) => (fromClaude(rel) ? `adapters/claude-code/${path.posix.basename(rel)}` : "SUBCOMMANDS in scripts/build-dist.js");
+  for (const [rel, text] of Object.entries(want)) {
     let have = null;
-    try { have = fs.readFileSync(path.join(outDir, f), "utf8"); } catch { /* reported below */ }
-    if (have === null) problems.push(`adapters/opencode/${f} is missing (generated from adapters/claude-code/${f})`);
-    else if (have !== text) problems.push(`adapters/opencode/${f} is stale (generated from adapters/claude-code/${f})`);
+    try { have = fs.readFileSync(path.join(dist, rel), "utf8"); } catch { /* reported below */ }
+    if (have === null) problems.push(`${rel} is missing (generated from ${source(rel)})`);
+    else if (have !== text) problems.push(`${rel} is stale (generated from ${source(rel)})`);
   }
-  const extra = fs.existsSync(outDir) ? fs.readdirSync(outDir).filter((f) => !(f in want)) : [];
-  extra.forEach((f) => problems.push(`adapters/opencode/${f} has no Claude Code source`));
+  for (const d of GENERATED_DIRS) {
+    if (!fs.existsSync(path.join(dist, d))) continue;
+    for (const e of entries(path.join(dist, d))) {
+      const rel = `${d}/${e.rel}`;
+      if (e.dir || rel in want) continue;
+      problems.push(/^adapters\/opencode\/bb[\w-]*\.md$/.test(rel) ? `${rel} has no Claude Code source` : `${rel} is not a generated file`);
+    }
+  }
   let fresh;
   try { fresh = manifestFor(dist); } catch (e) { return [...problems, e.message]; }
   let current = null;

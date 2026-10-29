@@ -84,10 +84,46 @@ In **Codex**, write `$bb` instead of `/bb` (for example `$bb list_tasks`). Codex
 
 | Agent | How to use it | Tested with |
 |---|---|---|
-| Claude Code | `/bb`, `/bb <subcommand>`, plus shortcuts such as `/bb-list_tasks`, `/bb-log_time` and `/bb-init --login` | 2.1.296 |
-| Codex CLI | `$bb <subcommand>`, or ask about Brewboard in plain words | 0.162.1 |
-| OpenCode | `/bb`, `/bb <subcommand>`, the same `/bb-…` shortcuts, or plain words | 1.18.35 |
-| Antigravity CLI | `/bb <subcommand>`, or plain words | 1.3.1 |
+| Claude Code | `/bb` (menu) or `/bb <subcommand>`; each subcommand is also suggested as `/bb <subcommand>` | 2.1.312 |
+| Codex CLI | `$bb <subcommand>`; each subcommand is also in the `$` picker as `bb <subcommand>`; or plain words | 0.165.0 |
+| OpenCode | `/bb` (menu) or `/bb <subcommand>`; each subcommand is also suggested as `/bb <subcommand>`; or plain words | 1.18.35 |
+| Antigravity CLI | `/bb` (menu) or `/bb <subcommand>`; each subcommand is also suggested as `/bb <subcommand>`; or plain words | 1.4.10 |
+
+The entry point is `/bb` (`$bb` in Codex), followed by a subcommand and its arguments: `/bb log_time 2h`, `/bb list_tasks Open 10`, `/bb find payment failure`. The subcommands are `init`, `list_projects`, `list_tasks`, `list_tickets`, `cycles`, `log_time`, `timesheets`, `create_mom`, `moms`, `show`, `find` and `status`.
+
+**Suggestions.** Type `/bb` (`$bb` in Codex) and the agent's own list shows `/bb` and the twelve subcommands:
+
+| Agent | Typing `/bb` shows | Picking `/bb list_tasks` types | Installed as |
+|---|---|---|---|
+| Claude Code | `/bb`, `/bb init`, `/bb list_tasks`, `/bb log_time`, … | `/bb list_tasks ` | skills in `~/.claude/skills/bb <subcommand>/` |
+| OpenCode | `/bb`, `/bb init`, `/bb list_tasks`, `/bb log_time`, … | `/bb list_tasks ` | commands `~/.config/opencode/commands/bb <subcommand>.md` |
+| Antigravity | `/bb`, `/bb init`, `/bb list_tasks`, `/bb log_time`, … | `/bb list_tasks ` | skills in `~/.gemini/antigravity-cli/skills/bb-<subcommand>/` |
+| Codex (`$`) | `bb`, `bb init`, `bb list_tasks`, `bb log_time`, … | `$bb list_tasks ` | skills in `~/.codex/skills/bb-<subcommand>/`, which only Codex reads |
+
+Then type the arguments and send: `/bb list_tasks Open 10`. What the agent receives is exactly what you would have typed by hand, so the suggestions and the typed command run the same workflow in `~/.bb/skill/SKILL.md`.
+
+How this works, and its limits: none of these agents can suggest the words that follow a command, so typing `/bb ` (with the space) closes the list and shows nothing more (Claude Code shows the main command's syntax as a grey hint). The subcommands are therefore registered as separate entries whose names contain a space, `bb list_tasks`, which each agent lists under `/bb`. When the message is sent, the agent reads the first word as the command, so `/bb list_tasks Open 10` always reaches `/bb` with `list_tasks Open 10` as its arguments, whether you picked the entry or typed it. In Claude Code and OpenCode the entry's folder or file name is what gets typed, which is why those names contain a space; Antigravity and Codex take it from the skill's `name`. Each entry also holds a few lines that hand the subcommand to the same workflow, in case an agent loads it directly; none has logic of its own.
+
+Per agent:
+
+- **Claude Code** lists all twelve under `/bb`. It shows no argument syntax for them, before or after you pick one (the arguments are in [Use it](#3-use-it) and in each workflow).
+- **OpenCode** shows at most ten matches, so typing `/bb` lists `/bb` and nine subcommands. Type a few more letters without a space to reach the others, for example `/bbtim` for `/bb timesheets`, `/bblistp` for `/bb list_projects`, `/bblistti` for `/bb list_tickets`; picking one still types `/bb <subcommand> `.
+- **Antigravity** lists all twelve under `/bb`. Use the arrow keys and **Enter** to pick one (**Tab** completes only the common part).
+- **Codex** lists `bb` and the twelve `bb <subcommand>` skills in the `$` picker. Pick the subcommand's entry, not `bb`, before typing the arguments: `$bb Backlog 10` does not say which subcommand you mean.
+
+Earlier versions installed `/bb-<subcommand>` commands for Claude Code and OpenCode (historical; they no longer exist). An update removes them, except a copy you edited, which is left alone and named in the installer output.
+
+**OpenCode asks before reading `~/.bb/skill`.** Every Brewboard request starts by reading `~/.bb/skill/SKILL.md`, which is outside your project, and OpenCode asks before its file tools read outside the project (`external_directory`). In the OpenCode window, answer **Allow always** once. A non-interactive `opencode run` cannot ask and refuses instead, so the request stops before it starts; allow the folder in your OpenCode configuration (`~/.config/opencode/opencode.json`):
+
+```json
+{ "permission": { "external_directory": { "~/.bb/skill/**": "allow" } } }
+```
+
+The installer does not change your OpenCode configuration.
+
+**Antigravity's skill location.** The installer puts the `bb` skill in `~/.gemini/antigravity-cli/skills/bb/`. Earlier versions used `~/.gemini/config/skills/bb/`, which Antigravity 1.4.x also reads; an update moves that copy aside so `bb` is registered once. To use the skill in one project only, copy `~/.gemini/antigravity-cli/skills/bb/SKILL.md` to `<project>/.agents/skills/bb/SKILL.md`; a project copy takes precedence over the global one.
+
+**Antigravity shows `/b` after you send `/bb`.** This is a display bug in Antigravity CLI (seen in 1.4.9 and 1.4.10), not a problem with the skill. When the text after `/` is the same string twice (`bb`, but also `qq` or `abab`), the CLI echoes only half of it. The full `/bb` is still sent: Antigravity's history records `/bb` and the agent runs the bb skill. `/bb` followed by a subcommand (`/bb list_tasks`) is echoed in full.
 
 The system check warns when an installed agent is older than the version it was tested with. If you install an agent after Brewboard, run the install command again.
 
@@ -103,7 +139,7 @@ The system check warns when an installed agent is older than the version it was 
 
 Signing in asks for a hidden password, which needs a real terminal. A coding agent runs commands without one, so `/bb init --login` opens a terminal for you:
 
-1. Type `/bb init --login`. In Codex, type `$bb init --login`. In Claude Code and OpenCode, `/bb-init --login` works too.
+1. Type `/bb init --login` (or pick `/bb init` from the suggestions and add `--login`). In Codex, type `$bb init --login`.
 2. A new terminal tab or window opens and runs the Brewboard sign-in. Enter the server URL (press Enter to keep the saved one), your login ID and your password **in that terminal**. Never type them into the agent chat; the agent never asks for them.
 3. When the terminal says you are signed in, press Enter to close it, go back to the agent and run `/bb init` to check the connection.
 
@@ -171,6 +207,7 @@ npx --yes --package=github:kartik-mannlowe/bb_skill brewboard-skill --check
 |---|---|
 | `npm error … An unknown git error occurred` | Git is missing. Install Git, then run the command again. |
 | `Cannot install: …` (missing Python, old Node.js, unwritable home or `~/.bb`) | Fix the item the check names, then run the installer again. Nothing was changed. |
+| `opencode run` stops with "permission requested: external_directory (…/.bb/skill/*); auto-rejecting" | Allow `~/.bb/skill/**` in your OpenCode configuration, as shown under [Supported agents](#supported-agents). |
 | An agent shows as "not detected" | Install the agent (its command must be on `PATH`) or run it once so its configuration folder exists, then run the installer again. |
 | "No coding agent configured" | The skill is installed but no agent was found. Add a supported agent and run the installer again. |
 | `not_configured` | You are not signed in. Run `/bb init --login` in your agent, or the installer with `--login`. |
@@ -195,7 +232,7 @@ The repository is self-contained: the installer, the skill and its Python client
 ```text
 bin/, lib/                 the npx installer (Node.js, no dependencies)
 dist/skill/                the skill: SKILL.md, the bb.py client, reference and assets
-dist/adapters/             agent adapters (Claude Code, OpenCode, shared Agent Skill)
+dist/adapters/             agent adapters: the /bb commands, the shared Agent Skill, and the subcommand suggestion entries
 dist/manifest.json         sha256 and file mode of every packaged file
 scripts/                   build and verification tools (not packaged)
 test/                      Node.js tests; test/python holds the Python client tests
@@ -203,7 +240,7 @@ test/                      Node.js tests; test/python holds the Python client te
 
 | Command | Purpose |
 |---|---|
-| `npm run build` | Regenerates the OpenCode commands from the Claude Code ones and rewrites `dist/manifest.json`. Run it after editing anything in `dist/`. |
+| `npm run build` | Regenerates the OpenCode `/bb` command from the Claude Code one and every per-subcommand suggestion entry (for all four agents) from the `SUBCOMMANDS` table in `scripts/build-dist.js`, and rewrites `dist/manifest.json`. Run it after editing anything in `dist/`. |
 | `npm test` | Runs all Node.js tests and the Python client tests. Needs `python3`. |
 | `npm run check-dist` | Read-only check that `dist/` matches its manifest and that the generated files are current. |
 | `npm run pack:check` | Lists what `npm pack` would include and fails on anything outside the allowlist or anything that looks like a secret or local file. |

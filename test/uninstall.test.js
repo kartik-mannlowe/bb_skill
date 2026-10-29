@@ -78,6 +78,8 @@ test("1+2+3: all four agents and the skill are removed; unrelated files and pre-
     assert.deepStrictEqual(fs.readdirSync(path.join(ap.opencodeDir, "commands")), ["deploy.md"]);
     assert.deepStrictEqual(fs.readdirSync(ap.agentSkills), ["other"]);
     assert.deepStrictEqual(fs.readdirSync(path.join(ap.geminiConfig, "skills")), ["x"]);
+    assert.ok(!fs.existsSync(path.join(ap.codexDir, "skills")), "the Codex shortcut folders the installer created are gone");
+    assert.ok(!fs.existsSync(path.join(ap.antigravityDir, "skills")), "the Antigravity skill folder the installer created is gone");
     unrelated.forEach((f) => assert.strictEqual(fs.readFileSync(f, "utf8"), "user data", f));
     for (const d of [ap.claudeDir, ap.codexDir, ap.opencodeDir, ap.antigravityDir]) assert.ok(fs.existsSync(d), d);
   } finally { h.cleanup(); }
@@ -132,12 +134,12 @@ test("legacy copies moved aside by the installer are restored when the path is f
 });
 
 test("7+8: changed files are kept by default; --force removes only files the installer created", () => {
-  const { h, ap, install: inst } = setup(["claude"]);
+  const { h, ap, install: inst } = setup(["claude", "codex"]);
   try {
     const replaced = path.join(ap.claudeDir, "commands", "bb.md");
     write(replaced, "my original");
     inst();
-    const created = path.join(ap.claudeDir, "commands", "bb-find.md");
+    const created = path.join(ap.codexDir, "skills", "bb-find", "SKILL.md");
     fs.writeFileSync(created, "I edited Brewboard's command");
     fs.writeFileSync(replaced, "I edited it after Brewboard replaced mine");
     let res = uninstallNow(h);
@@ -217,10 +219,10 @@ test("9+10: missing files and folders are fine, and a second uninstall changes n
   try {
     inst();
     fs.rmSync(path.join(ap.opencodeDir, "commands"), { recursive: true });
-    fs.rmSync(path.join(ap.claudeDir, "commands", "bb-find.md"));
+    fs.rmSync(path.join(ap.codexDir, "skills", "bb-find"), { recursive: true });
     const first = uninstallNow(h);
     assert.strictEqual(first.code, 0, JSON.stringify(first.r.failed));
-    assert.ok(first.plan.gone.length >= 14);
+    assert.strictEqual(first.plan.gone.length, 14, "OpenCode's 13 commands and the bb-find entry");
     write(path.join(ap.claudeDir, "commands", "bb-later.md"), "Brewboard ~/.bb/skill lookalike the user made");
     const before = snapshot(h.home);
     const second = uninstallNow(h);
@@ -240,7 +242,7 @@ test("11: --dry-run changes nothing at all (and creates nothing on an empty home
     r = await runBin(["uninstall", "--dry-run"], h.env);
     assert.strictEqual(r.status, 0, r.err);
     assert.match(r.out, /dry run: nothing will be changed/);
-    assert.match(r.out, /Remove \(44\)/);
+    assert.match(r.out, /Remove \(68\)/);
     assert.strictEqual(snapshot(h.home), before);
   } finally { h.cleanup(); }
 });

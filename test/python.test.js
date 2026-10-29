@@ -15,3 +15,17 @@ test("Python client: views, terminal output, bb.py end to end (test/python)", ()
   process.stdout.write(`# python: ${summary.replace(/\s+/g, " ")}\n`);
   assert.strictEqual(r.status, 0, r.stderr.slice(-6000));
 });
+
+test("the Python tests leave no bytecode in dist/, even when run without -B", () => {
+  const root = path.join(__dirname, "..");
+  const caches = () => require("fs").readdirSync(path.join(root, "dist"), { recursive: true })
+    .filter((p) => /(^|\/)__pycache__$/.test(p));
+  const env = { ...process.env };
+  delete env.PYTHONDONTWRITEBYTECODE;
+  const before = caches();
+  // test_comments imports bbclient from dist/skill/scripts in-process, as every module does through support.py.
+  const r = spawnSync("python3", ["-m", "unittest", "discover", "-s", "test/python", "-p", "test_comments.py"],
+                      { cwd: root, encoding: "utf8", timeout: 60000, env });
+  assert.strictEqual(r.status, 0, r.stderr.slice(-3000));
+  assert.deepStrictEqual(caches(), before, "a plain `python3 -m unittest discover -s test/python` wrote into dist/");
+});

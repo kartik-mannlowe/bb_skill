@@ -494,9 +494,9 @@ class Routing(unittest.TestCase):
         self.assertIn("`/bb init [--login | --logout]`", skill)
         self.assertIn("Run only `bb.py init --logout --format table`", init)
         self.assertIn("1. Run `bb.py auth-check --format table`", init)
-        for rel in ("adapters/claude-code/bb-init.md", "adapters/opencode/bb-init.md", "adapters/agent-skill/bb.md"):
+        for rel in ("adapters/claude-code/bb.md", "adapters/opencode/bb.md", "adapters/agent-skill/bb.md",
+                    "adapters/codex/bb-init/SKILL.md"):
             self.assertIn("`bb.py init --login --launch --format table`", self.read(rel), rel)
-        self.assertIn('argument-hint: "[--login | --logout]"', self.read("adapters/claude-code/bb-init.md"))
         self.assertIn("init [--login | --logout]", self.read("adapters/claude-code/bb.md"))
         self.assertIn("`$bb` in Codex", self.read("adapters/agent-skill/bb.md"))
 

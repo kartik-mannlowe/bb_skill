@@ -16,6 +16,10 @@ function withAgents(h, ids = ["claude", "codex", "opencode", "antigravity"]) {
 }
 
 const files = (dir) => (fs.existsSync(dir) ? fs.readdirSync(dir).sort() : []);
+const SUBS = ["init", "list_projects", "list_tasks", "list_tickets", "cycles", "log_time", "timesheets", "create_mom", "moms",
+              "show", "find", "status"];
+const CODEX_IDS = ["bb-create-mom", "bb-cycles", "bb-find", "bb-init", "bb-list-projects", "bb-list-tasks", "bb-list-tickets",
+                   "bb-log-time", "bb-moms", "bb-show", "bb-status", "bb-timesheets"];
 
 test("installs the core skill and the right files for each agent", () => {
   const h = tmpHome();
@@ -25,11 +29,20 @@ test("installs the core skill and the right files for each agent", () => {
     assert.ok(r.validation.ok);
     assert.strictEqual(fs.statSync(h.paths.bbPy).mode & 0o777, 0o755);
     assert.strictEqual(fs.statSync(h.paths.bbHome).mode & 0o777, 0o700);
-    assert.ok(files(path.join(ap.claudeDir, "commands")).includes("bb-list_tasks.md"));
-    assert.strictEqual(files(path.join(ap.claudeDir, "commands")).length, 13);
-    assert.strictEqual(files(path.join(ap.opencodeDir, "commands")).length, 13);
+    assert.deepStrictEqual(files(path.join(ap.claudeDir, "commands")), ["bb.md"], "one /bb command, no /bb-* shortcuts");
+    // One suggestion entry per subcommand, named `bb <sub>`: what picking it types.
+    assert.deepStrictEqual(files(path.join(ap.opencodeDir, "commands")), ["bb.md", ...SUBS.map((x) => `bb ${x}.md`)].sort());
+    assert.deepStrictEqual(files(path.join(ap.claudeDir, "skills")), SUBS.map((x) => `bb ${x}`).sort());
+    for (const x of SUBS) assert.ok(fs.existsSync(path.join(ap.claudeDir, "skills", `bb ${x}`, "SKILL.md")), x);
+    assert.deepStrictEqual(files(path.join(ap.antigravityDir, "skills")), ["bb", ...CODEX_IDS].sort());
+    assert.ok(!fs.existsSync(path.join(ap.antigravityDir, "plugins")) && !fs.existsSync(path.join(ap.claudeDir, "skills", "bb")),
+              "no namespaced /bb:<sub> plugins");
     assert.ok(fs.existsSync(path.join(ap.agentSkills, "bb", "SKILL.md")));
-    assert.ok(fs.existsSync(path.join(ap.geminiConfig, "skills", "bb", "SKILL.md")));
+    assert.deepStrictEqual(files(ap.agentSkills), ["bb"], "Codex shortcuts stay out of the folder OpenCode also reads");
+    assert.deepStrictEqual(files(path.join(ap.codexDir, "skills")), CODEX_IDS);
+    for (const id of CODEX_IDS) assert.ok(fs.existsSync(path.join(ap.codexDir, "skills", id, "SKILL.md")), id);
+    assert.ok(fs.existsSync(path.join(ap.antigravityDir, "skills", "bb", "SKILL.md")));
+    assert.ok(!fs.existsSync(path.join(ap.geminiConfig, "skills")), "Antigravity's skill is registered once");
     assert.ok(!fs.existsSync(path.join(ap.opencodeDir, "skills", "bb")), "no duplicate `bb` skill for OpenCode");
     const shared = readOwned(h.paths).files[path.join(ap.agentSkills, "bb", "SKILL.md")];
     assert.deepStrictEqual(shared.agents.sort(), ["codex", "opencode"]);
@@ -49,14 +62,21 @@ for (const only of ["claude", "codex", "opencode", "antigravity"]) {
       const r = install(h.paths, { agents });
       assert.deepStrictEqual(Object.keys(r.agents), [only]);
       const want = {
-        claude: [path.join(ap.claudeDir, "commands", "bb.md")],
-        codex: [path.join(ap.agentSkills, "bb", "SKILL.md")],
-        opencode: [path.join(ap.opencodeDir, "commands", "bb.md"), path.join(ap.agentSkills, "bb", "SKILL.md")],
-        antigravity: [path.join(ap.geminiConfig, "skills", "bb", "SKILL.md")],
+        claude: [path.join(ap.claudeDir, "commands", "bb.md"), path.join(ap.claudeDir, "skills", "bb log_time", "SKILL.md")],
+        codex: [path.join(ap.agentSkills, "bb", "SKILL.md"), path.join(ap.codexDir, "skills", "bb-log-time", "SKILL.md")],
+        opencode: [path.join(ap.opencodeDir, "commands", "bb.md"), path.join(ap.opencodeDir, "commands", "bb log_time.md"),
+                   path.join(ap.agentSkills, "bb", "SKILL.md")],
+        antigravity: [path.join(ap.antigravityDir, "skills", "bb", "SKILL.md"),
+                      path.join(ap.antigravityDir, "skills", "bb-log-time", "SKILL.md")],
       }[only];
       want.forEach((f) => assert.ok(fs.existsSync(f), f));
       const all = { claude: path.join(ap.claudeDir, "commands", "bb.md"), oc: path.join(ap.opencodeDir, "commands", "bb.md"),
-                    ag: path.join(ap.geminiConfig, "skills", "bb", "SKILL.md"), shared: path.join(ap.agentSkills, "bb", "SKILL.md") };
+                    ag: path.join(ap.antigravityDir, "skills", "bb", "SKILL.md"), shared: path.join(ap.agentSkills, "bb", "SKILL.md"),
+                    codexShortcut: path.join(ap.codexDir, "skills", "bb-log-time", "SKILL.md"),
+                    claudeSub: path.join(ap.claudeDir, "skills", "bb log_time", "SKILL.md"),
+                    ocSub: path.join(ap.opencodeDir, "commands", "bb log_time.md"),
+                    agSub: path.join(ap.antigravityDir, "skills", "bb-log-time", "SKILL.md"),
+                    oldAg: path.join(ap.geminiConfig, "skills", "bb", "SKILL.md") };
       for (const f of Object.values(all)) if (!want.includes(f)) assert.ok(!fs.existsSync(f), `unexpected ${f}`);
     } finally { h.cleanup(); }
   });
@@ -84,7 +104,7 @@ test("replaced files are backed up; Brewboard copies at old paths are moved, for
   try {
     const { ap, agents } = withAgents(h);
     const legacyOc = path.join(ap.opencodeDir, "skills", "bb", "SKILL.md");
-    const legacyAg = path.join(ap.antigravityDir, "skills", "bb", "SKILL.md");
+    const legacyAg = path.join(ap.geminiConfig, "skills", "bb", "SKILL.md");
     const foreign = path.join(ap.claudeDir, "commands", "erpnext-bb.md");
     for (const [f, text] of [[legacyOc, "---\nname: bb\n---\nRead ~/.bb/skill/SKILL.md (Brewboard)"],
                              [legacyAg, "---\nname: bb\n---\nRead ~/.bb/skill/SKILL.md (Brewboard)"],
@@ -105,9 +125,9 @@ test("replaced files are backed up; Brewboard copies at old paths are moved, for
     assert.deepStrictEqual(t.moved.map((m) => m.path).sort(), [legacyAg, legacyOc].sort());
     t.moved.forEach((m) => assert.ok(fs.existsSync(m.backup)));
     // An update that replaces one of Brewboard's own files backs it up in an install-<ts> run folder.
-    fs.writeFileSync(path.join(ap.claudeDir, "commands", "bb-find.md"), "edited Brewboard command");
+    fs.writeFileSync(path.join(ap.codexDir, "skills", "bb-find", "SKILL.md"), "edited Brewboard skill");
     const r2 = install(h.paths, { agents });
-    assert.ok(r2.backupDir && fs.existsSync(path.join(r2.backupDir, ".claude/commands/bb-find.md")));
+    assert.ok(r2.backupDir && fs.existsSync(path.join(r2.backupDir, ".codex/skills/bb-find/SKILL.md")));
     assert.ok(tracking.readTracking(h.paths).backup_runs.includes(r2.backupDir));
     assert.ok(r.agents.opencode.removed.includes(legacyOc));
   } finally { h.cleanup(); }
@@ -146,5 +166,83 @@ test("the installed skill has everything /bb init --login needs to open a termin
 
 test("packaged files are checked against the manifest before installing", () => {
   const n = readManifest(require("../lib/paths").resolvePaths(process.env).distDir).files.length;
-  assert.strictEqual(n, 43);
+  assert.strictEqual(n, 67);
+});
+
+test("upgrading from the /bb-* layout: retired commands and the old Antigravity copy go, edits and foreign files stay", () => {
+  const h = tmpHome();
+  try {
+    const { ap, agents } = withAgents(h);
+    install(h.paths, { agents });
+    const tracking = require("../lib/tracking");
+    const brewboard = (what) => `Run \`/bb ${what}\` by reading ~/.bb/skill/SKILL.md (Brewboard).\n`;
+    const claudeCmd = (n) => path.join(ap.claudeDir, "commands", n);
+    const ocCmd = (n) => path.join(ap.opencodeDir, "commands", n);
+    const oldAg = path.join(ap.geminiConfig, "skills", "bb", "SKILL.md");
+    // What an earlier version installed and recorded (one of them edited by the user since).
+    const t = tracking.readTracking(h.paths);
+    const old = { [claudeCmd("bb-find.md")]: ["claude", "find"], [claudeCmd("bb-list_tasks.md")]: ["claude", "list_tasks"],
+                  [claudeCmd("bb-show.md")]: ["claude", "show"], [ocCmd("bb-log_time.md")]: ["opencode", "log_time"],
+                  [oldAg]: ["antigravity", "skill"] };
+    for (const [file, [agent, what]] of Object.entries(old)) {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, brewboard(what));
+      t.files[file] = { sha256: tracking.sha(Buffer.from(brewboard(what))), agents: [agent], mode: "644", created: true, original: null };
+    }
+    tracking.writeTracking(h.paths, t);
+    fs.writeFileSync(claudeCmd("bb-show.md"), "my notes in Brewboard's old /bb-show command");
+    // Not recorded: a manual copy of an old shortcut, and an unrelated command of the same name.
+    fs.writeFileSync(ocCmd("bb-moms.md"), brewboard("moms"));
+    fs.writeFileSync(claudeCmd("bb-status.md"), "my own status command");
+
+    const r = install(h.paths, { agents });
+    assert.deepStrictEqual(files(path.join(ap.claudeDir, "commands")), ["bb-show.md", "bb-status.md", "bb.md"]);
+    assert.deepStrictEqual(files(path.join(ap.opencodeDir, "commands")), ["bb.md", ...SUBS.map((x) => `bb ${x}.md`)].sort());
+    assert.ok(fs.existsSync(path.join(ap.claudeDir, "skills", "bb find", "SKILL.md")), "/bb find replaces /bb-find");
+    assert.strictEqual(fs.readFileSync(claudeCmd("bb-show.md"), "utf8"), "my notes in Brewboard's old /bb-show command");
+    assert.strictEqual(fs.readFileSync(claudeCmd("bb-status.md"), "utf8"), "my own status command");
+    assert.ok(!fs.existsSync(oldAg) && fs.existsSync(path.join(ap.antigravityDir, "skills", "bb", "SKILL.md")));
+    for (const f of [claudeCmd("bb-find.md"), claudeCmd("bb-list_tasks.md")]) assert.ok(r.agents.claude.removed.includes(f), f);
+    assert.ok(r.agents.antigravity.removed.includes(oldAg));
+    assert.ok(fs.existsSync(path.join(r.backupDir, ".claude/commands/bb-find.md")), "removed copies are backed up");
+    const after = tracking.readTracking(h.paths);
+    assert.deepStrictEqual(after.moved.map((m) => m.path), [ocCmd("bb-moms.md")], "the manual copy is moved aside, restorable");
+    assert.ok(after.files[claudeCmd("bb-show.md")], "the edited copy stays recorded, so uninstall still reports it");
+    assert.deepStrictEqual(r.agents.claude.kept, [claudeCmd("bb-show.md")]);
+    assert.ok(r.validation.ok);
+  } finally { h.cleanup(); }
+});
+
+test("an update removes the folders an earlier layout created once they are empty, and keeps anything else", () => {
+  const h = tmpHome();
+  try {
+    const { ap, agents } = withAgents(h);
+    install(h.paths, { agents });
+    const tracking = require("../lib/tracking");
+    // What the previous layout installed and recorded: a plugin folder and a nested command folder.
+    const t = tracking.readTracking(h.paths);
+    const oldFiles = { [path.join(ap.claudeDir, "skills", "bb", ".claude-plugin", "plugin.json")]: "claude",
+                       [path.join(ap.claudeDir, "skills", "bb", "commands", "find.md")]: "claude",
+                       [path.join(ap.opencodeDir, "commands", "bb", "find.md")]: "opencode",
+                       [path.join(ap.antigravityDir, "plugins", "bb", "skills", "find", "SKILL.md")]: "antigravity" };
+    for (const [file, agent] of Object.entries(oldFiles)) {
+      for (let d = path.dirname(file); !fs.existsSync(d); d = path.dirname(d)) t.dirs.push(d);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, "old Brewboard entry");
+      t.files[file] = { sha256: tracking.sha(Buffer.from("old Brewboard entry")), agents: [agent], mode: "644", created: true, original: null };
+    }
+    tracking.writeTracking(h.paths, t);
+    const mine = path.join(ap.antigravityDir, "plugins", "bb", "notes.txt"); // something of the user's in a folder we made
+    fs.writeFileSync(mine, "keep me");
+    const r = install(h.paths, { agents });
+    assert.ok(r.validation.ok);
+    for (const gone of [path.join(ap.claudeDir, "skills", "bb"), path.join(ap.opencodeDir, "commands", "bb"),
+                        path.join(ap.antigravityDir, "plugins", "bb", "skills")]) assert.ok(!fs.existsSync(gone), gone);
+    assert.strictEqual(fs.readFileSync(mine, "utf8"), "keep me", "a folder holding a user file stays");
+    const after = tracking.readTracking(h.paths);
+    assert.ok(after.dirs.includes(path.join(ap.antigravityDir, "plugins", "bb")), "and stays recorded for uninstall");
+    assert.ok(!after.dirs.includes(path.join(ap.claudeDir, "skills", "bb")), "removed folders leave the record");
+    assert.ok(fs.existsSync(path.join(ap.claudeDir, "skills", "bb find", "SKILL.md")), "current entries untouched");
+    assert.ok(fs.existsSync(h.paths.backupsDir), "backups (in ~/.bb) are never pruned this way");
+  } finally { h.cleanup(); }
 });

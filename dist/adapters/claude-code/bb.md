@@ -8,6 +8,8 @@ Subcommand and arguments: $ARGUMENTS
 
 If no subcommand was given, show the Brewboard home screen exactly as the "Menu" section of SKILL.md describes: first print the output of `python3 ~/.bb/skill/scripts/bb.py home --format table` verbatim (once per /bb, never again while paging through the menu), then use the AskUserQuestion tool (four pages), never a numbered list.
 
+Sign-in and sign-out: `/bb init --login` follows only the sign-in step of the init section: run `bb.py init --login --launch --format table`, which opens the sign-in in a new terminal, and print its output verbatim. Never run `bb.py init --login` or `bb.py init` yourself, not even with `!`: they need a real terminal for the hidden password prompt. `/bb init --logout` follows only the sign-out step (`bb.py init --logout --format table`, output printed verbatim). Never ask the user to paste a password or API secret into the chat.
+
 All Brewboard data comes from `python3 ~/.bb/skill/scripts/bb.py`, which calls the Brewboard backend's whitelisted HTTP API. Do not use MCP tools or call ERPNext URLs yourself for Brewboard data.
 
 Menu routing: each option runs the SKILL.md workflow of the same name, exactly as its direct command does. The native selector is only for this menu. When Projects, Tasks, Tickets, Cycles, Time Logs or Meetings is chosen (now or later in the conversation), fetch afresh with `bb.py ... --format table` (Tasks and Tickets: `--limit 5` unless the user gives a limit, as in "Task and ticket list arguments"), print the output verbatim, and end your turn so the user types the record ID. Do NOT use AskUserQuestion to pick a record and never offer row numbers. The `Sel` column marks an already-selected record with `*`; the ID column holds only the record ID.

@@ -201,7 +201,7 @@ test("a symbolic link where a skill file goes is never replaced", () => {
     const real = path.join(h.home, "my-skills", "bb.md");
     fs.mkdirSync(path.dirname(real), { recursive: true });
     fs.writeFileSync(real, "managed elsewhere");
-    const link = path.join(ap.geminiConfig, "skills", "bb", "SKILL.md");
+    const link = path.join(ap.antigravityDir, "skills", "bb", "SKILL.md");
     fs.mkdirSync(path.dirname(link), { recursive: true });
     fs.symlinkSync(real, link);
     const r = install(h.paths, { agents });
@@ -248,27 +248,28 @@ test("uninstall keeps tracked paths that became folders, links or unreadable, an
   try {
     const { ap, agents } = withAgents(h);
     install(h.paths, { agents });
-    const cmds = path.join(ap.claudeDir, "commands");
-    fs.rmSync(path.join(cmds, "bb-find.md"));
-    fs.mkdirSync(path.join(cmds, "bb-find.md"));
-    fs.rmSync(path.join(cmds, "bb-moms.md"));
-    fs.symlinkSync("/etc/hostname", path.join(cmds, "bb-moms.md"));
-    fs.chmodSync(path.join(cmds, "bb-show.md"), 0o000);
+    const skill = (id) => path.join(ap.codexDir, "skills", id, "SKILL.md");
+    fs.rmSync(skill("bb-find"));
+    fs.mkdirSync(skill("bb-find"));
+    fs.rmSync(skill("bb-moms"));
+    fs.symlinkSync("/etc/hostname", skill("bb-moms"));
+    fs.chmodSync(skill("bb-show"), 0o000);
 
     const plan = planUninstall(h.paths);
-    const reasons = Object.fromEntries(plan.keep.map((k) => [path.basename(k.path), k.reason]));
-    assert.match(reasons["bb-find.md"], /is now a folder; left alone/);
-    assert.match(reasons["bb-moms.md"], /is now a symbolic link; left alone/);
-    assert.match(reasons["bb-show.md"], /cannot be read \(permission denied\); left alone/);
+    const reasons = Object.fromEntries(plan.keep.map((k) => [path.basename(path.dirname(k.path)), k.reason]));
+    assert.match(reasons["bb-find"], /is now a folder; left alone/);
+    assert.match(reasons["bb-moms"], /is now a symbolic link; left alone/);
+    assert.match(reasons["bb-show"], /cannot be read \(permission denied\); left alone/);
 
     const out = capture(), err = capture();
     assert.strictEqual(await main(["uninstall", "--dry-run"], { env: h.env, stdin: { isTTY: false }, stdout: out, stderr: err }), 0);
     const r = executeUninstall(h.paths, plan);
     assert.strictEqual(exitCode(r), 2);
-    assert.ok(fs.statSync(path.join(cmds, "bb-find.md")).isDirectory());
-    assert.strictEqual(fs.readlinkSync(path.join(cmds, "bb-moms.md")), "/etc/hostname");
-    assert.ok(fs.existsSync(path.join(cmds, "bb-show.md")));
-    assert.ok(!fs.existsSync(path.join(cmds, "bb.md")), "everything else was removed");
-    fs.chmodSync(path.join(cmds, "bb-show.md"), 0o644);
+    assert.ok(fs.statSync(skill("bb-find")).isDirectory());
+    assert.strictEqual(fs.readlinkSync(skill("bb-moms")), "/etc/hostname");
+    assert.ok(fs.existsSync(skill("bb-show")));
+    assert.ok(!fs.existsSync(path.join(ap.claudeDir, "commands", "bb.md")), "everything else was removed");
+    assert.ok(!fs.existsSync(skill("bb-log-time")), "everything else was removed");
+    fs.chmodSync(skill("bb-show"), 0o644);
   } finally { h.cleanup(); }
 });

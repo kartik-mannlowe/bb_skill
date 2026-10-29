@@ -173,3 +173,33 @@ test("build then check-dist round-trips: a rebuilt dist/ is consistent again", (
     assert.match(fs.readFileSync(path.join(f.dist, "adapters/opencode/bb.md"), "utf8"), /a question tool or any native selector/);
   } finally { f.cleanup(); }
 });
+
+test("per-subcommand entries are generated for the subcommands SKILL.md documents, and check-dist catches them going stale", () => {
+  const f = fixture();
+  try {
+    const { SUBCOMMANDS } = require("../scripts/build-dist");
+    const skill = path.join(f.dist, "skill/SKILL.md");
+    fs.writeFileSync(skill, `# skill\n${SUBCOMMANDS.slice(0, 3).map(([sub]) => `\n### ${sub}\nx\n`).join("")}`);
+    assert.throws(() => build(f.dist, () => {}), /no "### <sub>" section for list_tickets, cycles/, "a partial set is a mistake");
+    fs.writeFileSync(skill, `# skill\n${SUBCOMMANDS.map(([sub]) => `\n### ${sub}\nx\n`).join("")}`);
+    assert.strictEqual(f.run(), 1, "a SKILL.md with sections but without its entries is not consistent");
+    build(f.dist, () => {});
+    assert.strictEqual(f.run(), 0, f.out.error.join("\n"));
+    for (const rel of ["adapters/claude-skills/bb log_time/SKILL.md", "adapters/opencode/bb log_time.md",
+                       "adapters/antigravity-skills/bb-log-time/SKILL.md", "adapters/codex/bb-log-time/SKILL.md"]) {
+      assert.ok(fs.existsSync(path.join(f.dist, rel)), rel);
+    }
+    fs.appendFileSync(path.join(f.dist, "adapters/codex/bb-log-time/SKILL.md"), "extra workflow\n");
+    fs.appendFileSync(path.join(f.dist, "adapters/opencode/bb find.md"), "extra workflow\n");
+    fs.mkdirSync(path.join(f.dist, "adapters/claude-skills/old"));
+    fs.writeFileSync(path.join(f.dist, "adapters/claude-skills/old/x.md"), "x");
+    assert.strictEqual(f.run(), 1);
+    const text = f.out.error.join("\n");
+    assert.match(text, /adapters\/codex\/bb-log-time\/SKILL\.md is stale \(generated from SUBCOMMANDS/);
+    assert.match(text, /adapters\/opencode\/bb find\.md is stale \(generated from SUBCOMMANDS/);
+    assert.match(text, /adapters\/claude-skills\/old\/x\.md is not a generated file/);
+    build(f.dist, () => {});
+    assert.ok(!fs.existsSync(path.join(f.dist, "adapters/claude-skills/old")), "the build removes what it does not generate");
+    assert.strictEqual(f.run(), 0, f.out.error.join("\n"));
+  } finally { f.cleanup(); }
+});
